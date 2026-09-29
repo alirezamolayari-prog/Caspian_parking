@@ -73,7 +73,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** uuid7 ordering/uniqueness; digits/jalali/money/plate parametrized; bidi mixed‑direction strings; theme contrast ≥ 4.5:1 for every text/background pair in both themes; lint‑test "no hex colors outside tokens"; "no brand strings in code" test; migrations on SQLite + LocalDB; append‑only (update/delete raise, triggers fire); audit written on every reference change; scrypt; pytest‑qt: login, permission‑hidden buttons, theme toggle, command palette, PlateWidget render to PNG.
 - **Deps:** Phase 0. **Risk:** LocalDB 2012 + SQLAlchemy 2 quirks → keep T‑SQL 2012‑compatible.
 
-## ⬜ Phase 2 — Tariff engine + settings UI
+## 🔄 Phase 2 — Tariff engine + settings UI
 - [ ] `core/tariff/`: `TariffValues` (frozen, all ints), `TariffVersion` (effective_from), `ParkingCalendar` (hours per weekday, free weekdays, holidays), `compute_price(...) -> PriceBreakdown` (entry fee, extra minutes & amount, rounding, chargeable minutes, nights & fines, coupon, exemption, flags, lines for receipts/reports); price basis entry‑time/exit‑time; pass‑through rule; motorcycle flat; after‑hours flag.
 - [ ] Data: `tariff_versions`, `working_hours`, `holidays` (reference + audit); seed defaults from §4.5.
 - [ ] UI: Settings → Tariffs (versions + history, new version with effective date, permission‑gated), Working hours per weekday, Free weekdays, Holiday calendar; Jalali date picker widget.

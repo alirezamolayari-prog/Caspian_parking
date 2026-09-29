@@ -130,3 +130,17 @@ def test_no_brand_strings_in_code():
             if any(word in text for word in BRAND_WORDS):
                 offenders.append(f"{path.relative_to(SRC)}:{line}: {text[:40]!r}")
     assert not offenders, offenders
+
+
+SPEC_AMOUNTS = {190_000, 200_000, 2_000_000, 4_000_000}
+
+
+def test_no_tariff_amounts_in_code():
+    """Prices come from settings / seed data only (CLAUDE.md code rules)."""
+    offenders = []
+    for path in SRC.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and type(node.value) is int and node.value in SPEC_AMOUNTS:
+                offenders.append(f"{path.relative_to(SRC)}:{node.lineno}")
+    assert not offenders, offenders

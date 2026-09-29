@@ -7,13 +7,97 @@
     "site.address": "یافت‌آباد"
   },
   "gates": [
-    {"code": 1, "name": "درب یافت‌آباد"},
-    {"code": 2, "name": "درب اسدنژاد"}
+    {
+      "code": 1,
+      "name": "درب یافت‌آباد"
+    },
+    {
+      "code": 2,
+      "name": "درب اسدنژاد"
+    }
   ],
   "levels": [
-    {"code": "P1", "name": "طبقه P1", "capacity": 202, "is_parking": true, "is_open": true, "sort": 1},
-    {"code": "P2", "name": "طبقه P2", "capacity": 221, "is_parking": true, "is_open": false, "sort": 2},
-    {"code": "P3", "name": "طبقه P3", "capacity": 221, "is_parking": true, "is_open": false, "sort": 3},
-    {"code": "P4", "name": "طبقه P4 (انبار)", "capacity": 0, "is_parking": false, "is_open": false, "sort": 4}
-  ]
+    {
+      "code": "P1",
+      "name": "طبقه P1",
+      "capacity": 202,
+      "is_parking": true,
+      "is_open": true,
+      "sort": 1
+    },
+    {
+      "code": "P2",
+      "name": "طبقه P2",
+      "capacity": 221,
+      "is_parking": true,
+      "is_open": false,
+      "sort": 2
+    },
+    {
+      "code": "P3",
+      "name": "طبقه P3",
+      "capacity": 221,
+      "is_parking": true,
+      "is_open": false,
+      "sort": 3
+    },
+    {
+      "code": "P4",
+      "name": "طبقه P4 (انبار)",
+      "capacity": 0,
+      "is_parking": false,
+      "is_open": false,
+      "sort": 4
+    }
+  ],
+  "tariff": {
+    "entry_fee": 190000,
+    "entry_minutes": 60,
+    "hourly_rate": 190000,
+    "rounding_step": 10000,
+    "motorcycle_flat": 200000,
+    "night_fine": 2000000,
+    "motorcycle_night_fine": true,
+    "night_fine_grace_minutes": 0,
+    "pass_through_free_minutes": 20,
+    "subscription_price": 4000000,
+    "subscription_days": 30
+  },
+  "calendar": {
+    "hours": {
+      "0": [
+        "09:30",
+        "20:30"
+      ],
+      "1": [
+        "09:30",
+        "20:30"
+      ],
+      "2": [
+        "09:30",
+        "20:30"
+      ],
+      "3": [
+        "09:30",
+        "20:30"
+      ],
+      "4": [
+        "09:30",
+        "20:30"
+      ],
+      "5": [
+        "09:30",
+        "20:30"
+      ],
+      "6": [
+        "09:30",
+        "20:30"
+      ]
+    },
+    "free_weekdays": [
+      3,
+      4
+    ],
+    "price_basis": "entry"
+  }
 }

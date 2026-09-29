@@ -25,6 +25,7 @@ Every dependency must allow closed‑source commercial distribution. Shipped = b
 | Lucide icons (SVG subset) | 1.48.0 | ISC | yes | `resources/icons/LICENSE.txt`; recolored at runtime |
 | pytest, pluggy, iniconfig | 9.1.1 … | MIT | no | dev only |
 | pytest‑qt | 4.5.0 | MIT | no | dev only |
+| pytest‑cov / coverage | 7.1.0 / 7.16.2 | MIT / Apache‑2.0 | no | dev only |
 | hypothesis / sortedcontainers | 6.168.3 / 2.4.0 | MPL‑2.0 / Apache‑2.0 | no | dev only |
 | ruff | 0.16.9 | MIT | no | dev only |
 | mypy (+ deps) | 2.3.1 | MIT | no | dev only |
