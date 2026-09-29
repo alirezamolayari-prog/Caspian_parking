@@ -7,13 +7,21 @@ from caspian_parking.services import auth
 from caspian_parking.services.auth import CurrentUser
 from caspian_parking.ui.theme.manager import ThemeManager
 
+_theme_ready = False
+
 
 @pytest.fixture
 def themed(qapp):
+    """Dark theme, applied once per session (re-applying restyles every live widget, which is slow)."""
+    global _theme_ready
     create_application()
-    ThemeManager.instance().apply("dark")
-    yield ThemeManager.instance()
-    ThemeManager.instance().apply("dark")
+    manager = ThemeManager.instance()
+    if not _theme_ready or manager.mode != "dark":
+        manager.apply("dark")
+        _theme_ready = True
+    yield manager
+    if manager.mode != "dark":
+        manager.apply("dark")
 
 
 def make_user(ctx, username: str, preset: str = "admin", password: str = "secret1"):

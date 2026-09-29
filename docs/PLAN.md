@@ -80,7 +80,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests (exhaustive, ~100% branch):** every §4.5 example (5/60/61/72/73/120 min, Wed 14:00→Thu 11:00), second flooring (60m59s = 60), rounding step variants, integers only, motorcycle, night fines (0/1/multiple nights, free days, grace), holidays, spans over several paid/free days, tariff change mid‑stay (both bases), pass‑through 20 vs 21 min, coupon zeroes fee but not fines, exemption, after‑hours arrivals; property tests (hypothesis): monotonic non‑decreasing in exit time, result multiple of step.
 - **Deps:** Phase 1 (settings, audit, jalali).
 
-## ⬜ Phase 3 — Gate operations (standalone, manual plate)
+## 🔄 Phase 3 — Gate operations (standalone, manual plate)
 - [ ] `core/tickets.py` (Luhn, format/parse, sequence), `core/barcode.py` (payload + HMAC encode/verify, Code 128 C encoder → modules).
 - [ ] Models: `active_sessions`, `visits`, entry/exit/payment/cancellation/adjustment/debt/debt_collection/duplicate/night_mark events, `gate_sequences`, `fy_counter_events` (immutable counters), `levels` occupancy.
 - [ ] `services/gate_service.py`: entry (3 s debounce, one open session per plate, types, receipt without plate, motorcycle, pass‑through kinds), exit (scan/type/search/lost), price via tariff engine, payments (cash / card / mall‑card), fleeing → debt, debt collection on next arrival, lost ticket + duplicate, cancel with reason, manual amount change with reason, night marks + closing list + next‑morning auto‑flag, occupancy, counters.

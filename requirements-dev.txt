@@ -4,6 +4,7 @@ pytest==9.1.1
 pytest-qt==4.5.0
 pytest-cov==7.1.0
 coverage==7.16.2
+zxing-cpp==3.1.1
 hypothesis==6.168.3
 sortedcontainers==2.4.0
 ruff==0.16.9
