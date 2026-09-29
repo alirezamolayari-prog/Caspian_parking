@@ -18,7 +18,7 @@ where = ["src"]
 "*" = ["*.json", "*.ttf", "*.svg", "*.png", "*.wav", "*.xlsx", "*.ini", "*.mako"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 src = ["src", "tests", "scripts"]
 
@@ -36,11 +36,13 @@ ignore = [
     "N802",     # Qt overrides use camelCase
     "PLC0415",  # local imports used to keep Qt startup lazy
     "PLW0603",  # small module-level state (id counter, language) is intentional
+    "N818",     # domain exception names read better without an Error suffix
+    "PLR0917",  # keyword-heavy domain functions
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["PLR2004", "DTZ", "PLC2401", "N806"]
-"src/caspian_parking/data/migrations/versions/*" = ["E501"]
+"tests/**" = ["PLR2004", "DTZ", "PLC2401", "N806", "PT012"]
+"src/caspian_parking/data/migrations/versions/*" = ["E501", "W291"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,10 +1,8 @@
 {
   "_comment": "Persian UI strings. Keys are grouped by prefix. Placeholders use {name}.",
-
   "money.unit": "ریال",
   "duration.minutes": "{m} دقیقه",
   "duration.hours_minutes": "{h} ساعت و {m} دقیقه",
-
   "weekday.0": "دوشنبه",
   "weekday.1": "سه‌شنبه",
   "weekday.2": "چهارشنبه",
@@ -12,7 +10,6 @@
   "weekday.4": "جمعه",
   "weekday.5": "شنبه",
   "weekday.6": "یکشنبه",
-
   "jmonth.1": "فروردین",
   "jmonth.2": "اردیبهشت",
   "jmonth.3": "خرداد",
@@ -25,9 +22,36 @@
   "jmonth.10": "دی",
   "jmonth.11": "بهمن",
   "jmonth.12": "اسفند",
-
   "plate.iran": "ایران",
   "plate.ir_strip_top": "I.R.",
   "plate.ir_strip_bottom": "IRAN",
-  "plate.empty": "بدون پلاک"
+  "plate.empty": "بدون پلاک",
+  "role.operator": "اپراتور",
+  "role.supervisor": "سرپرست",
+  "role.admin": "مدیر سیستم",
+  "perm.gate.operate": "کار با درب (ورود و خروج)",
+  "perm.tariffs.change": "تغییر تعرفه‌ها",
+  "perm.fines.adjust": "کاهش یا بخشش جریمه شب‌پارک",
+  "perm.amounts.adjust": "تغییر دستی هر مبلغ",
+  "perm.transactions.cancel": "ابطال تراکنش",
+  "perm.guest.grant": "صدور مجوز مهمان",
+  "perm.subscription.negative": "مجاز کردن اشتراک منفی",
+  "perm.blocklist.manage": "مسدود و رفع مسدودی پلاک",
+  "perm.blocklist.details": "دیدن جزئیات مسدودی‌های امنیتی",
+  "perm.subscribers.manage": "مدیریت مشترکین",
+  "perm.shops.manage": "مدیریت مغازه‌ها و کیف پول",
+  "perm.ads.manage": "مدیریت تبلیغات و کوپن",
+  "perm.reports.view": "دیدن گزارش‌ها",
+  "perm.reports.financial": "دیدن گزارش‌های مالی",
+  "perm.reports.export": "خروجی گرفتن از گزارش‌ها",
+  "perm.users.manage": "مدیریت کاربران",
+  "perm.audit.view": "دیدن تاریخچه تغییرات",
+  "perm.backup.manage": "پشتیبان‌گیری و بازیابی",
+  "perm.fiscal.close": "بستن سال مالی",
+  "perm.settings.change": "تغییر تنظیمات",
+  "perm.hardware.settings": "تنظیمات سخت‌افزار",
+  "perm.review.resolve": "رسیدگی به صف بازبینی",
+  "password.too_short": "رمز عبور باید دست‌کم ۶ نویسه باشد",
+  "user.username_required": "نام کاربری را وارد کنید",
+  "user.username_taken": "این نام کاربری قبلاً ثبت شده است"
 }
