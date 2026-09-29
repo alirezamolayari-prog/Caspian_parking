@@ -56,7 +56,7 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑037 — Immutable counters:** derived from append‑only entry events since the start of the Jalali year (Phase 6 switches to the fiscal‑year table). Nobody can edit them; cancelled entries still count (the vehicle did pass).
 - **D‑038 — Payment corrections:** a wrong payment is voided with a cancellation event (reason required, permission *cancel transactions*) and the correct payment is recorded as a new event.
 - **D‑039 — Printer failure never loses an entry:** the entry is committed first; a printer error raises the alert bar + toast and the receipt can be reprinted (المثنی) from the "already inside" dialog or the lost‑ticket dialog.
-- **D‑040 — Receipt artwork:** the pine‑forest and wave barcode art are generated into `<data root>eceiptarcode-art` on first use; the logo (`receipt\logo.png`) must be supplied by the owner — until then receipts print without it and the alert bar says so.
+- **D‑040 — Receipt artwork:** the pine‑forest and wave barcode art are generated into `<data root>\receipt\barcode-art` on first use; the logo (`receipt\logo.png`) must be supplied by the owner — until then receipts print without it and the alert bar says so.
 - **D‑041 — Style hooks:** the QSS size hook is the dynamic property `scale` (Qt silently ignores dynamic properties named like built‑in ones such as `size`; a test guards this).
 - **D‑042 — Scanner scope:** the keyboard‑wedge filter only acts while its owning screen is visible; serial scanners run on a background thread with automatic reconnect.
 - **D‑043 — Overnight auto‑flag:** runs whenever the gate screen is shown (e.g. first login in the morning); idempotent per night.
