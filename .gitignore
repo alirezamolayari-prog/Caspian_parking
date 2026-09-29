@@ -1,0 +1,44 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# Build output
+build/
+dist/
+installer/output/
+*.spec.bak
+
+# Data, secrets, runtime files - never commit
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.bak
+*.log
+.env
+.env.*
+*.key
+secrets/
+data_root/
+photos/
+backups/
+exports/
+logs/
+
+# Test artifacts
+tests/artifacts/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

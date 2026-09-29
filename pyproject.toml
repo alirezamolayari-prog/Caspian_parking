@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "caspian-parking"
+dynamic = ["version"]
+description = "Windows desktop parking-management application"
+requires-python = ">=3.12,<3.13"
+
+[tool.setuptools.dynamic]
+version = { attr = "caspian_parking.version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.ttf", "*.svg", "*.png", "*.wav", "*.xlsx", "*.ini", "*.mako"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL", "N", "C4", "PIE", "PT", "RET", "DTZ"]
+ignore = [
+    "PLR0913",  # many args are normal for domain functions
+    "PLR2004",  # magic values are fine in tests/domain constants
+    "PLR0911",
+    "PLR0912",
+    "PLR0915",
+    "RUF001",   # Persian characters are intentional
+    "RUF002",
+    "RUF003",
+    "N802",     # Qt overrides use camelCase
+    "PLC0415",  # local imports used to keep Qt startup lazy
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "DTZ", "PLC2401", "N806"]
+"src/caspian_parking/data/migrations/versions/*" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers -m \"not perf\""
+qt_api = "pyside6"
+markers = [
+    "mssql: needs a reachable SQL Server (LocalDB) - skipped with a reason when unavailable",
+    "perf: performance benchmarks on the big synthetic dataset (scripts\\perf.ps1)",
+    "slow: slower tests",
+]
+filterwarnings = ["error::sqlalchemy.exc.SAWarning"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["caspian_parking"]
+ignore_missing_imports = true
+follow_imports = "silent"
+check_untyped_defs = false
+disallow_untyped_defs = false
+warn_unused_ignores = false
+no_implicit_optional = true
