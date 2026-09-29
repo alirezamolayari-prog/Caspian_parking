@@ -9,6 +9,7 @@ Rules implemented here:
 * night fine per closing time crossed while inside (+ grace), also on free days (D-009)
 * pass-through: free up to ``pass_through_free_minutes``; longer stays are priced as transient and flagged
 * coupon: transient fee becomes zero; night fines always remain
+* covered (subscriber / free access): no parking fee; night fines still apply unless exempt
 * after-hours arrivals are security records only; flagged when still inside at the next opening
 """
 
@@ -42,6 +43,7 @@ FLAG_COUPON = "coupon"
 FLAG_NIGHT_EXEMPT = "night_exempt"
 FLAG_NO_CHARGEABLE_TIME = "no_chargeable_time"
 FLAG_OVERNIGHT = "overnight"
+FLAG_COVERED = "covered"  # subscriber / free access: no parking fee, night fines still apply
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,7 @@ def compute_price(
     basis: PriceBasis = PriceBasis.ENTRY,
     coupon: bool = False,
     night_exempt: bool = False,
+    covered: bool = False,
 ) -> PriceBreakdown:
     entry = ensure_utc(entry)
     exit_ = ensure_utc(exit_)
@@ -190,6 +193,11 @@ def compute_price(
             entry_fee, extra_minutes, extra_amount, rounding, fee = car_fee(minutes, values)
     if minutes == 0 and not free_pass:
         flags.add(FLAG_NO_CHARGEABLE_TIME)
+
+    if covered:
+        entry_fee = extra_minutes = extra_amount = rounding = fee = 0
+        flags.add(FLAG_COVERED)
+        flags.discard(FLAG_NO_CHARGEABLE_TIME)
 
     coupon_discount = 0
     if coupon and fee > 0:

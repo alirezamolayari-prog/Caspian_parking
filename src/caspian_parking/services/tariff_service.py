@@ -69,6 +69,7 @@ class TariffContext:
         kind: VisitKind = VisitKind.TRANSIENT,
         coupon: bool = False,
         night_exempt: bool = False,
+        covered: bool = False,
     ) -> PriceBreakdown:
         return compute_price(
             entry,
@@ -80,6 +81,7 @@ class TariffContext:
             self.basis,
             coupon=coupon,
             night_exempt=night_exempt,
+            covered=covered,
         )
 
 

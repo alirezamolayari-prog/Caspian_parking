@@ -466,3 +466,16 @@ def test_calendar_without_any_opening_hours():
     assert result.nights == 0
     assert FLAG_AFTER_HOURS_ARRIVAL in result.flags
     assert FLAG_INSIDE_AT_OPENING not in result.flags
+
+
+def test_covered_visits_pay_only_night_fines():
+    from caspian_parking.core.tariff.engine import FLAG_COVERED
+
+    day = price(at(MON, 10), at(MON, 18), covered=True)
+    assert day.total == 0
+    assert FLAG_COVERED in day.flags
+    assert FLAG_NO_CHARGEABLE_TIME not in day.flags
+    overnight = price(at(MON, 10), at(TUE, 10), covered=True)
+    assert overnight.transient_fee == 0
+    assert overnight.total == 2_000_000
+    assert price(at(MON, 10), at(TUE, 10), covered=True, night_exempt=True).total == 0
