@@ -22,6 +22,11 @@ DEFAULTS: dict[str, Any] = {
     "receipt.labels": {},
     "receipt.print_exit_receipt": False,
     "gate.preview_before_print": False,
+    "gate.print_for_covered": False,  # print a paper ticket for subscribers / free access too
+    "subscription.amber_days": 5,
+    "subscription.red_hours": 48,
+    "subscription.negative_max_days": 10,
+    "wallet.auto_renew": True,
 }
 
 

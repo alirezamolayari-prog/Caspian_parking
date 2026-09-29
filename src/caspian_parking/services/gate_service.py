@@ -26,6 +26,7 @@ from caspian_parking.core.jalali import JalaliDate, jalali_of, local_date, local
 from caspian_parking.core.money import require_int
 from caspian_parking.core.permissions import Permission
 from caspian_parking.core.plate import Plate, parse_plate
+from caspian_parking.core.subscriptions import EntryStatus
 from caspian_parking.core.tariff import PriceBreakdown, VehicleType, VisitKind
 from caspian_parking.core.tickets import TicketNumber, TicketNumberError, parse_ticket_number
 from caspian_parking.data.models import (
@@ -41,8 +42,11 @@ from caspian_parking.data.models import (
     Reprint,
     Visit,
 )
+from caspian_parking.data.models.people import Person
 from caspian_parking.data.repositories.system import LevelRepository
+from caspian_parking.services.blocklist import BlocklistService, BlockMatch
 from caspian_parking.services.context import AppContext
+from caspian_parking.services.identification import Identification, Kind, identify
 from caspian_parking.services.settings import get_setting
 from caspian_parking.services.tariff_service import TariffContext, load_context
 
@@ -83,12 +87,26 @@ class OpenDebt:
     remaining: int
 
 
+class Blocked(GateError):
+    """Entry refused: the plate (or its owner) is on the blocklist. The attempt has been logged."""
+
+    def __init__(self, match: BlockMatch) -> None:
+        super().__init__("gate.blocked", match=match)
+        self.match = match
+
+
 @dataclass(frozen=True)
 class EntryResult:
     session: ActiveSession
     ticket: TicketNumber
     payload: str
     debts: list[OpenDebt] = field(default_factory=list)
+    identification: Identification | None = None
+
+    @property
+    def needs_receipt(self) -> bool:
+        """Covered visits (subscribers, free access) do not need a paper ticket."""
+        return self.identification is None or not self.identification.covered
 
 
 @dataclass(frozen=True)
@@ -109,6 +127,33 @@ class LevelOccupancy:
     name: str
     capacity: int
     inside: int
+
+
+def debt_paid(session: Session, debt_id: str) -> int:
+    cancelled = select(Cancellation.target_id).where(Cancellation.target_table == "payments")
+    paid = session.scalar(
+        select(func.coalesce(func.sum(Payment.amount), 0)).where(
+            Payment.debt_id == debt_id, Payment.id.not_in(cancelled)
+        )
+    )
+    return int(paid or 0)
+
+
+def open_debts(session: Session, plate_key: str) -> list[OpenDebt]:
+    cancelled = select(Cancellation.target_id).where(Cancellation.target_table == "debts")
+    debts = session.scalars(
+        select(Debt).where(Debt.plate_key == plate_key, Debt.id.not_in(cancelled)).order_by(Debt.created_at_utc)
+    ).all()
+    result = []
+    for debt in debts:
+        remaining = debt.amount - debt_paid(session, debt.id)
+        if remaining > 0:
+            result.append(OpenDebt(debt, remaining))
+    return result
+
+
+def open_debts_total(session: Session, plate_key: str) -> int:
+    return sum(d.remaining for d in open_debts(session, plate_key))
 
 
 def category_for(vehicle: VehicleType, kind: VisitKind) -> Category:
@@ -183,6 +228,25 @@ class GateService:
     ) -> EntryResult:
         self._require(Permission.OPERATE_GATE)
         now = self._now()
+        identification = self.identify(plate) if plate is not None else None
+        if identification is not None and identification.block is not None:
+            BlocklistService(self.ctx).record_attempt(
+                identification.block.block, plate.key if plate else None, self.gate_code
+            )
+            raise Blocked(identification.block)
+        category = category_for(vehicle, kind)
+        person_id = None
+        flags: list[str] = []
+        if identification is not None and identification.person is not None:
+            person_id = identification.person.id
+            if identification.covered:
+                category = Category.SUBSCRIBER if identification.kind is Kind.SUBSCRIBER else Category.FREE
+                if identification.status is EntryStatus.NEGATIVE:
+                    flags.append("negative_subscription")
+            elif identification.concurrency_exceeded:
+                flags.append("concurrency_exceeded")
+            elif identification.kind is Kind.SUBSCRIBER:
+                flags.append("expired_subscription")
         with self.ctx.uow() as session:
             debounce = int(get_setting(session, "gate.debounce_seconds"))
             if plate is not None:
@@ -213,17 +277,22 @@ class GateService:
                 "vehicle_type": vehicle.value,
                 "kind": kind.value,
                 "pass_type": pass_type,
-                "category": category_for(vehicle, kind).value,
+                "category": category.value,
                 "entry_at_utc": now,
                 "entry_minute": entry_minute(now),
                 "no_plate": plate is None,
+                "person_id": person_id,
             }
-            active = ActiveSession(**fields, flags=[])
+            active = ActiveSession(**fields, flags=flags)
             session.add(active)
             session.flush()
             session.add(EntryEvent(session_id=active.id, **fields))
             debts = self._open_debts(session, plate.key) if plate else []
-        return EntryResult(active, ticket, payload, debts)
+        return EntryResult(active, ticket, payload, debts, identification)
+
+    def identify(self, plate: Plate) -> Identification:
+        with self.ctx.read() as session:
+            return identify(self.ctx, session, plate.key, self._now())
 
     # ---------------------------------------------------------------- lookups
     def resolve(self, text: str) -> ActiveSession:
@@ -304,8 +373,20 @@ class GateService:
     def quote(self, session_id: str, lost_ticket: bool = False, coupon: bool = False) -> ExitQuote:
         active = self.get_active(session_id)
         now = self._now()
+        covered = active.category in (Category.SUBSCRIBER.value, Category.FREE.value)
+        night_exempt = False
+        if active.person_id:
+            with self.ctx.read() as session:
+                person = session.get(Person, active.person_id)
+                night_exempt = bool(person and person.night_exempt)
         breakdown = self.tariffs().quote(
-            active.entry_at_utc, now, VehicleType(active.vehicle_type), VisitKind(active.kind), coupon=coupon
+            active.entry_at_utc,
+            now,
+            VehicleType(active.vehicle_type),
+            VisitKind(active.kind),
+            coupon=coupon,
+            night_exempt=night_exempt,
+            covered=covered,
         )
         return ExitQuote(active, now, breakdown, lost_ticket)
 
@@ -417,6 +498,7 @@ class GateService:
             lost_ticket=bool(quote and quote.lost_ticket),
             no_plate=active.no_plate,
             night_count=quote.breakdown.nights if quote is not None else 0,
+            person_id=active.person_id,
             flags=sorted(flags),
         )
         session.add(visit)
@@ -439,25 +521,10 @@ class GateService:
         return debt
 
     def _debt_paid(self, session: Session, debt_id: str) -> int:
-        cancelled = select(Cancellation.target_id).where(Cancellation.target_table == "payments")
-        paid = session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0)).where(
-                Payment.debt_id == debt_id, Payment.id.not_in(cancelled)
-            )
-        )
-        return int(paid or 0)
+        return debt_paid(session, debt_id)
 
     def _open_debts(self, session: Session, plate_key: str) -> list[OpenDebt]:
-        cancelled = select(Cancellation.target_id).where(Cancellation.target_table == "debts")
-        debts = session.scalars(
-            select(Debt).where(Debt.plate_key == plate_key, Debt.id.not_in(cancelled)).order_by(Debt.created_at_utc)
-        ).all()
-        result = []
-        for debt in debts:
-            remaining = debt.amount - self._debt_paid(session, debt.id)
-            if remaining > 0:
-                result.append(OpenDebt(debt, remaining))
-        return result
+        return open_debts(session, plate_key)
 
     def open_debts(self, plate: Plate) -> list[OpenDebt]:
         with self.ctx.read() as session:

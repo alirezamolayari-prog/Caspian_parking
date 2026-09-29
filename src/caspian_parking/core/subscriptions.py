@@ -38,6 +38,9 @@ class LightThresholds:
     red_hours: int = 48
 
 
+DEFAULT_THRESHOLDS = LightThresholds()
+
+
 class EntryStatus(StrEnum):
     ACTIVE = "active"  # valid subscription
     NEGATIVE = "negative"  # expired, but allowed to enter (⚫ مجاز)
@@ -45,7 +48,7 @@ class EntryStatus(StrEnum):
     NONE = "none"  # never paid
 
 
-def light_for(end: datetime | None, now: datetime, thresholds: LightThresholds = LightThresholds()) -> Light:
+def light_for(end: datetime | None, now: datetime, thresholds: LightThresholds = DEFAULT_THRESHOLDS) -> Light:
     if end is None:
         return Light.BLACK
     remaining = ensure_utc(end) - ensure_utc(now)

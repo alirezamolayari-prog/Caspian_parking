@@ -41,6 +41,7 @@ class _SessionFields:
     entry_at_utc: Mapped[datetime] = mapped_column(UTCDateTime())
     entry_minute: Mapped[int] = mapped_column(BigInteger)
     no_plate: Mapped[bool] = mapped_column(Boolean, default=False)
+    person_id: Mapped[str | None] = mapped_column(String(ID_LENGTH), default=None)
 
 
 class ActiveSession(_SessionFields, EntityMixin, Base):
@@ -53,6 +54,7 @@ class ActiveSession(_SessionFields, EntityMixin, Base):
         Index("ix_active_sessions_ticket", "gate_code", "ticket_sequence"),
         Index("ix_active_sessions_minute", "gate_code", "entry_minute"),
         Index("ix_active_sessions_entry", "entry_at_utc"),
+        Index("ix_active_sessions_person", "person_id"),
     )
 
     night_marked: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -67,6 +69,7 @@ class EntryEvent(_SessionFields, EventMixin, Base):
         Index("ix_entry_events_entry", "entry_at_utc"),
         Index("ix_entry_events_plate", "plate_key"),
         Index("ix_entry_events_ticket", "gate_code", "ticket_sequence"),
+        Index("ix_entry_events_person", "person_id", "entry_at_utc"),
     )
 
     session_id: Mapped[str] = mapped_column(String(ID_LENGTH))
@@ -170,6 +173,7 @@ class Visit(EntityMixin, Base):
         Index("ix_visits_entry", "entry_at_utc"),
         Index("ix_visits_exit", "exit_at_utc"),
         Index("ix_visits_status", "status"),
+        Index("ix_visits_person", "person_id"),
     )
 
     session_id: Mapped[str] = mapped_column(String(ID_LENGTH))
@@ -189,4 +193,5 @@ class Visit(EntityMixin, Base):
     lost_ticket: Mapped[bool] = mapped_column(Boolean, default=False)
     no_plate: Mapped[bool] = mapped_column(Boolean, default=False)
     night_count: Mapped[int] = mapped_column(Integer, default=0)
+    person_id: Mapped[str | None] = mapped_column(String(ID_LENGTH), default=None)
     flags: Mapped[list[str]] = mapped_column(JSONText(), default=list)
