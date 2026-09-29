@@ -463,9 +463,13 @@ class PeopleService:
                 )
             )
 
-    def renew_due_from_wallets(self) -> list[SubscriptionPayment]:
-        """Shop-paid subscriptions that have ended are renewed from the shop wallet (when enough balance)."""
-        self._require(Permission.MANAGE_SUBSCRIBERS)
+    def renew_due_from_wallets(self, system: bool = False) -> list[SubscriptionPayment]:
+        """Shop-paid subscriptions that have ended are renewed from the shop wallet (when enough balance).
+
+        ``system`` = called by the scheduler (no logged-in user).
+        """
+        if not system:
+            self._require(Permission.MANAGE_SUBSCRIBERS)
         now = self._now()
         payments: list[SubscriptionPayment] = []
         with self.ctx.uow() as session:

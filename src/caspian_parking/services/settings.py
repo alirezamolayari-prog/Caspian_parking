@@ -27,6 +27,11 @@ DEFAULTS: dict[str, Any] = {
     "subscription.red_hours": 48,
     "subscription.negative_max_days": 10,
     "wallet.auto_renew": True,
+    "reports.daily_enabled": True,
+    "reports.daily_time": "21:00",
+    "reports.daily_folder": "",
+    "reports.daily_formats": ["excel", "word"],
+    "reports.daily_last": "",
 }
 
 

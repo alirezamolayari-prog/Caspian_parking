@@ -8,6 +8,7 @@ import secrets
 import shutil
 import tempfile
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QLocale, QObject, Qt, QTimer
@@ -19,6 +20,7 @@ from caspian_parking.data.repositories.system import UserRepository
 from caspian_parking.services import auth
 from caspian_parking.services.auth import CurrentUser
 from caspian_parking.services.context import AppContext, open_context
+from caspian_parking.services.scheduler import AppScheduler
 from caspian_parking.ui.shell.main_window import MainWindow
 from caspian_parking.ui.theme.manager import ThemeManager, load_fonts
 
@@ -140,15 +142,21 @@ def main(argv: list[str] | None = None) -> int:
         temp_root = Path(tempfile.mkdtemp(prefix="parking-smoke-"))
         root = temp_root
     ctx = open_context(root, training=True if args.training else None)
+    stoppers: list[Callable[[], None]] = []
     try:
         ThemeManager.instance().apply(ctx.config.theme_default)
         if args.smoke:
             return run_smoke(app, ctx, started)
+        scheduler = AppScheduler(ctx)
+        scheduler.start()
+        stoppers.append(scheduler.stop)
         controller = SessionController(ctx)
         if not controller.start():
             return 0
         return app.exec()
     finally:
+        for stop in stoppers:
+            stop()
         ctx.close()
         if temp_root is not None:
             logging.shutdown()
