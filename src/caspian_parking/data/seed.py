@@ -17,6 +17,7 @@ from caspian_parking.data.repositories.system import (
     RolePresetRepository,
     SettingsRepository,
 )
+from caspian_parking.data.repositories.tariff import seed_tariffs
 from caspian_parking.i18n import tr
 
 
@@ -53,6 +54,8 @@ def seed_defaults(session: Session, seed: dict[str, Any] | None = None) -> None:
     for key, value in data.get("settings", {}).items():
         if settings.by_key(key) is None:
             settings.set(key, value)
+
+    seed_tariffs(session)
 
 
 def register_node(session: Session, config: MachineConfig) -> Node:

@@ -10,5 +10,17 @@ from caspian_parking.data.models.system import (
     ShiftEvent,
     User,
 )
+from caspian_parking.data.models.tariff import Holiday, TariffVersionRecord
 
-__all__ = ["AuditLog", "Gate", "Level", "Node", "RolePreset", "Setting", "ShiftEvent", "User"]
+__all__ = [
+    "AuditLog",
+    "Gate",
+    "Holiday",
+    "Level",
+    "Node",
+    "RolePreset",
+    "Setting",
+    "ShiftEvent",
+    "TariffVersionRecord",
+    "User",
+]

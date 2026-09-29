@@ -37,3 +37,13 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑024 — Shadows:** drop shadows only on raised cards; regular cards use borders (cheaper to paint on old gate PCs).
 - **D‑025 — Test note:** Qt's QTest cannot synthesize Arabic‑script key events offscreen (the process crashes), so tests type Latin keys for real and feed Persian text through the same `textEdited`/`setText` path.
 - **D‑026 — Formatting:** `ruff format` is part of the quality gate (line length 120).
+
+## Phase 2 (2026‑09‑29)
+
+- **D‑027 — After‑hours arrivals:** a vehicle that arrives outside opening hours is a security record (no charge) — but if it is still inside when the parking opens, the minutes inside opening hours are priced normally and the visit is flagged `inside_at_opening` for the supervisor. Night fines only count closings the vehicle was inside for (so an after‑hours arrival is not fined for the closing that already passed).
+- **D‑028 — No retroactive tariffs:** a new tariff version must start now or in the future; versions that have not started yet can be withdrawn (deactivated, audited). Past versions are never edited, so every old ticket keeps its price basis.
+- **D‑029 — Price basis setting:** "tariff at entry time" (default) / "at exit time" is one installation setting (`tariff.price_basis`), not part of a tariff version.
+- **D‑030 — Less than one chargeable minute is free:** SPEC says a partial minute is not charged and the entry fee applies "if chargeable minutes > 0", so a stay under one minute costs nothing.
+- **D‑031 — Pass‑through fine:** a pass‑through (عبوری) that happens to cross closing time still gets the night fine (literal SPEC; the configurable grace minutes exist for this). Pass‑through limit uses the total stay, not only chargeable minutes.
+- **D‑032 — Tariff defaults in seed data:** SPEC §4.5 amounts live in `resources/seed/site.json` (`tariff`, `calendar`); a test forbids those amounts in code.
+- **D‑033 — Time inputs:** Qt reverses date/time sections for right‑to‑left locales (09:30 would show as 30:09), so times use a small LTR `TimeField` with Persian digits instead of `QTimeEdit`. The app's default QLocale is Persian (Persian digits in spin boxes).

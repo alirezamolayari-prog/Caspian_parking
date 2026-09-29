@@ -30,3 +30,15 @@ Built:
 How to test: `scripts\check.ps1` (≈230 tests; DB tests run on SQLite **and** SQL Server LocalDB). Screenshots of both themes are written to `tests/artifacts/` by the UI tests / smoke.
 
 Known gaps (planned later): link status is static until Phase 9 (sync); tariff, gate operations and every other module arrive in their phases.
+
+## Phase 2 — Tariff engine + settings UI ✅
+Built:
+- `core/tariff`: `TariffValues` / `TariffVersion` / `TariffSchedule`, `ParkingCalendar` (hours per weekday, free weekdays, holidays), `compute_price()` → `PriceBreakdown` (entry fee, extra minutes, rounding, coupon, nights & fines, flags, receipt lines). Integer Rial only; 100 % branch coverage, every SPEC §4.5 example + Hypothesis properties (price never decreases with a longer stay, amounts are integers and rounded).
+- Data: `tariff_versions` (versioned, audited) and `holidays` (migration `0002_tariffs`); calendar and price basis in settings; seeded from `resources/seed/site.json`.
+- Service `tariff_service`: load schedule/calendar/basis, `TariffContext.quote()`, add/withdraw versions (no retroactive), save calendar, holidays.
+- UI: **Tariffs & working hours** screen (permission *change tariffs*): tariff form + effective date/time + note → new version; history with status (current/future/past/withdrawn) and withdraw; working hours & free days per weekday; holidays with Jalali date picker; price calculator showing the breakdown and flags.
+- Widgets: `MoneyField` (Persian digits, separators, int Rial), `JalaliDateEdit` + month popup (Saturday first), `TimeField`.
+
+How to run/test: `scripts\check.ps1`. In the app: sidebar → «تعرفه و ساعات کاری».
+
+Known gaps: none for this phase. Coupons and night‑fine exemptions are inputs to the engine; their management UIs arrive in Phases 4 and 7.

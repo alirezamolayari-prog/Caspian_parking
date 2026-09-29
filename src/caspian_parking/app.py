@@ -10,7 +10,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QTimer
+from PySide6.QtCore import QLocale, QObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication, QDialog
 
 from caspian_parking.config.defaults import product_name
@@ -41,6 +41,7 @@ def create_application() -> QApplication:
     app = existing if isinstance(existing, QApplication) else QApplication([])
     app.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
     app.setApplicationName(product_name())
+    QLocale.setDefault(QLocale(QLocale.Language.Persian, QLocale.Country.Iran))  # Persian digits in inputs
     load_fonts()
     return app
 

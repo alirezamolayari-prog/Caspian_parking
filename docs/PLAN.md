@@ -73,10 +73,10 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** uuid7 ordering/uniqueness; digits/jalali/money/plate parametrized; bidi mixed‑direction strings; theme contrast ≥ 4.5:1 for every text/background pair in both themes; lint‑test "no hex colors outside tokens"; "no brand strings in code" test; migrations on SQLite + LocalDB; append‑only (update/delete raise, triggers fire); audit written on every reference change; scrypt; pytest‑qt: login, permission‑hidden buttons, theme toggle, command palette, PlateWidget render to PNG.
 - **Deps:** Phase 0. **Risk:** LocalDB 2012 + SQLAlchemy 2 quirks → keep T‑SQL 2012‑compatible.
 
-## 🔄 Phase 2 — Tariff engine + settings UI
-- [ ] `core/tariff/`: `TariffValues` (frozen, all ints), `TariffVersion` (effective_from), `ParkingCalendar` (hours per weekday, free weekdays, holidays), `compute_price(...) -> PriceBreakdown` (entry fee, extra minutes & amount, rounding, chargeable minutes, nights & fines, coupon, exemption, flags, lines for receipts/reports); price basis entry‑time/exit‑time; pass‑through rule; motorcycle flat; after‑hours flag.
-- [ ] Data: `tariff_versions`, `working_hours`, `holidays` (reference + audit); seed defaults from §4.5.
-- [ ] UI: Settings → Tariffs (versions + history, new version with effective date, permission‑gated), Working hours per weekday, Free weekdays, Holiday calendar; Jalali date picker widget.
+## ✅ Phase 2 — Tariff engine + settings UI
+- [x] `core/tariff/`: `TariffValues` (frozen, all ints), `TariffVersion` (effective_from), `ParkingCalendar` (hours per weekday, free weekdays, holidays), `compute_price(...) -> PriceBreakdown` (entry fee, extra minutes & amount, rounding, chargeable minutes, nights & fines, coupon, exemption, flags, lines for receipts/reports); price basis entry‑time/exit‑time; pass‑through rule; motorcycle flat; after‑hours flag.
+- [x] Data: `tariff_versions`, `working_hours`, `holidays` (reference + audit); seed defaults from §4.5.
+- [x] UI: Settings → Tariffs (versions + history, new version with effective date, permission‑gated), Working hours per weekday, Free weekdays, Holiday calendar; Jalali date picker widget.
 - **Tests (exhaustive, ~100% branch):** every §4.5 example (5/60/61/72/73/120 min, Wed 14:00→Thu 11:00), second flooring (60m59s = 60), rounding step variants, integers only, motorcycle, night fines (0/1/multiple nights, free days, grace), holidays, spans over several paid/free days, tariff change mid‑stay (both bases), pass‑through 20 vs 21 min, coupon zeroes fee but not fines, exemption, after‑hours arrivals; property tests (hypothesis): monotonic non‑decreasing in exit time, result multiple of step.
 - **Deps:** Phase 1 (settings, audit, jalali).
 

@@ -117,7 +117,7 @@ QLineEdit[invalid="true"] { border: 2px solid $danger; }
 QComboBox::drop-down { border: none; width: 28px; }
 QComboBox QAbstractItemView { background: $surface; color: $text; border: 1px solid $border_strong;
     selection-background-color: $selection; outline: none; }
-QSpinBox::up-button, QSpinBox::down-button { width: 0; border: none; }
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button { width: 0; border: none; }
 QCheckBox, QRadioButton { spacing: ${s}px; background: transparent; }
 QCheckBox::indicator, QRadioButton::indicator { width: 18px; height: 18px; border: 1px solid $border_strong;
     background: $surface_sunken; border-radius: 4px; }
