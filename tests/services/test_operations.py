@@ -257,3 +257,19 @@ def test_training_mode_is_isolated(tmp_path, clock):
             assert session.scalar(select(func.count()).select_from(Visit)) == 0
     finally:
         training.close()
+
+
+def test_shutdown_tasks_backup_and_clean_flag(ctx, clock):
+    import json
+
+    from caspian_parking.app import shutdown_tasks
+
+    shutdown_tasks(ctx)
+    assert len(backup.list_backups(ctx.data_root.backups)) == 1
+    state = json.loads((ctx.data_root.config / heartbeat.HEARTBEAT_FILE).read_text(encoding="utf-8"))
+    assert state["clean"] is True
+    with ctx.uow() as session:
+        set_setting(session, "backup.on_close", False)
+    clock.advance(seconds=5)
+    shutdown_tasks(ctx)
+    assert len(backup.list_backups(ctx.data_root.backups)) == 1

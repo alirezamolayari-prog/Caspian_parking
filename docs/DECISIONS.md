@@ -82,3 +82,12 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑057 — Occupancy:** computed by sweeping entries/exits (visits + vehicles inside) at hourly samples; the heatmap shows the average number inside per weekday × hour. "% of P1" = peak ÷ capacity of the first parking level.
 - **D‑058 — Daily report:** financial, open sessions, night parking and debts for the day, Excel + Word (no Qt in the scheduler thread). Missed days (PC off) are generated at the next start, at most the last 7 days.
 - **D‑059 — Performance dataset:** `.bigdata/` (git‑ignored) is built with bulk SQL for speed; benchmarks use the previous full Jalali month for "report of one month".
+
+## Phase 6 (2026‑09‑30)
+
+- **D‑060 — Backup format:** a single zip per backup (database + folders + manifest) so a restore is one file; secrets in `config` are DPAPI‑encrypted for this machine, so a backup restored on another PC needs the HMAC key re‑entered through the wizard (Phase 11).
+- **D‑061 — Backup destinations** are per PC (machine config), other backup settings (time, keep, on close) are shared settings.
+- **D‑062 — Read‑only closed years:** enforced in the session hook for append‑only records created on this node with a timestamp before the open year's start (only possible with a wrong PC clock); records synced from other nodes are not blocked here (Phase 9 handles them).
+- **D‑063 — Fiscal year default:** Farvardin 1 – Esfand end of the Jalali year; the next year after a close starts the day after the closed year's end.
+- **D‑064 — Photos table:** photo rows are reference data without audit (thousands per day); deleting an old file sets `file_deleted_at_utc` instead of deleting the row.
+- **D‑065 — Outages:** a gap of more than 90 s between heartbeats counts as an outage; the heartbeat file also records whether the app shut down cleanly.

@@ -1,7 +1,7 @@
 """Photo storage (SPEC §4.13): Jalali folders, searchable file names, retention, usage, disk space.
 
 File name example (searchable in Windows Explorer):
-``1405-07-06_14-32-10_ورود_یافت‌آباد_12ب345-22_مشترک_علی‌رضایی_پژو206.jpg``
+``1405-07-06_14-32-10_ورود_درب‌شمالی_12ب345-22_مشترک_علی‌رضایی_پژو206.jpg`` (gate name from settings)
 Photos of fled, blocked, night-parking and "keep forever" sessions are never deleted automatically.
 """
 

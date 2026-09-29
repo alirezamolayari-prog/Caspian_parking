@@ -89,3 +89,16 @@ Benchmark results on 1,000,000 visits (this PC, `tests/artifacts/perf.json`):
 How to run/test: `scripts/check.ps1`; benchmarks `scripts/perf.ps1`. In the app: sidebar → «داشبورد» and «گزارش‌ها».
 
 Known gaps: reports read the local database; the "server database when connected" source and the local‑data banner switch arrive with sync in Phase 9 (`ReportResult.local_only` is already wired to the exports).
+
+## Phase 6 — Backup/restore, fiscal year, maintenance, photos, outages, training ✅
+Built:
+- Backup: one zip = SQLite online‑backup copy + `receipt`, `templates`, `ads`, `config` folders; copied to the data root's `backups` folder and every extra folder of this PC (second disk / USB; an unavailable one is skipped); retention (keep N); scheduled daily, catch‑up when overdue, and on close; alert when no successful backup for 24 h. Test restore (integrity check in a temp folder) and real restore (safety backup first, app restarts). SQL Server: `BACKUP DATABASE … WITH CHECKSUM` and `RESTORE VERIFYONLY` (tested on LocalDB).
+- Fiscal year (migration `0005_ops`): default = current Jalali year; closing (permission + typed year name + reason) archives the final counters, marks the year closed and opens the next one. Closed years are read‑only: local writes dated inside them are refused. Counters restart at the new year; subscriptions, wallets, debts and vehicles inside carry over.
+- Photos: Jalali folders `photos/yyyy/mm/dd`, SPEC file names (sanitised, ZWNJ for spaces), retention in days that never removes photos of fled, blocked, night‑parking or "keep forever" sessions; MB/day, free space and days of capacity; disk‑low alert.
+- Heartbeat every 30 s → outage log (power cut vs clean shutdown) and report 19; monthly maintenance (SQLite ANALYZE/optimize/incremental vacuum, SQL Server index rebuild + statistics).
+- Alert monitor (every minute) feeding the alert bar: printer, backup overdue, disk low (more checks join in later phases).
+- UI: **Backup & system** screen with tabs Backup, Fiscal year, Photos & disk (+ maintenance), Outages, Training mode.
+
+How to run/test: `scripts/check.ps1`. In the app: sidebar → «پشتیبان و سیستم».
+
+Known gaps: restore of the central SQL Server database is done with SQL Server tools (the app creates and verifies `.bak` files); cameras (Phase 8) will be the first real writer of photos.

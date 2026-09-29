@@ -107,12 +107,12 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** each report's totals on a fixed fixture; exporters produce valid files; catch‑up logic; benchmarks (run at end of every phase ≥ 5, results in PROGRESS).
 - **Deps:** 3, 4.
 
-## 🔄 Phase 6 — Backup/restore, fiscal year, maintenance, photos, outages, training
-- [ ] Backups: SQLite online backup API, SQL Server `BACKUP DATABASE` (tested on LocalDB), zip of `receipt\ templates\ ads\ config\`, multiple destinations, retention, scheduled + on close + catch‑up, > 24 h warning; restore with confirmation + test restore (integrity check / `RESTORE VERIFYONLY`).
-- [ ] Fiscal year: define/close → archive read‑only (repositories reject writes into closed years), carry‑over (active subs, balances, debts, inside vehicles), counters reset & archived.
-- [ ] Monthly maintenance (ANALYZE + incremental vacuum; UPDATE STATISTICS / index rebuild).
-- [ ] Photo storage: Jalali folders, spec file naming + sanitizing, retention that never deletes protected sessions, MB/day + days‑left estimate, disk alerts.
-- [ ] Heartbeat every 30 s → outage log + report 19. Training mode (separate DB, banner, "آموزشی" on receipts). Hardware alert bar service (§4.15).
+## ✅ Phase 6 — Backup/restore, fiscal year, maintenance, photos, outages, training
+- [x] Backups: SQLite online backup API, SQL Server `BACKUP DATABASE` (tested on LocalDB), zip of `receipt\ templates\ ads\ config\`, multiple destinations, retention, scheduled + on close + catch‑up, > 24 h warning; restore with confirmation + test restore (integrity check / `RESTORE VERIFYONLY`).
+- [x] Fiscal year: define/close → archive read‑only (repositories reject writes into closed years), carry‑over (active subs, balances, debts, inside vehicles), counters reset & archived.
+- [x] Monthly maintenance (ANALYZE + incremental vacuum; UPDATE STATISTICS / index rebuild).
+- [x] Photo storage: Jalali folders, spec file naming + sanitizing, retention that never deletes protected sessions, MB/day + days‑left estimate, disk alerts.
+- [x] Heartbeat every 30 s → outage log + report 19. Training mode (separate DB, banner, "آموزشی" on receipts). Hardware alert bar service (§4.15).
 - **Tests:** backup→restore round trip (SQLite + LocalDB), retention, fiscal close carry‑over and read‑only, photo naming & retention, outage detection from heartbeat gaps, training isolation.
 - **Deps:** 3–5.
 
