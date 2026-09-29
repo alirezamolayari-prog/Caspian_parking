@@ -38,7 +38,7 @@ def window(qtbot, admin_ctx, clock):
 
 def test_admin_sidebar_has_phase4_screens(window):
     keys = [s.key for s in window.screens]
-    assert keys[:6] == ["gate", "home", "subscribers", "shops", "free_access", "blocklist"]
+    assert keys[:7] == ["gate", "dashboard", "home", "subscribers", "shops", "free_access", "blocklist"]
 
 
 def test_subscriber_create_pay_and_follow_up(window, admin_ctx, clock, monkeypatch):

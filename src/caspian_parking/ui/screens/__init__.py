@@ -9,9 +9,11 @@ from caspian_parking.ui.shell.registry import ScreenSpec, register
 def register_builtin_screens() -> None:
     from caspian_parking.ui.screens.audit import AuditScreen
     from caspian_parking.ui.screens.blocklist import BlocklistScreen
+    from caspian_parking.ui.screens.dashboard import DashboardScreen
     from caspian_parking.ui.screens.free_access import FreeAccessScreen
     from caspian_parking.ui.screens.gate import GateScreen
     from caspian_parking.ui.screens.home import HomeScreen
+    from caspian_parking.ui.screens.reports import ReportsScreen
     from caspian_parking.ui.screens.settings_screen import SettingsScreen
     from caspian_parking.ui.screens.shops import ShopsScreen
     from caspian_parking.ui.screens.subscribers import SubscribersScreen
@@ -26,6 +28,14 @@ def register_builtin_screens() -> None:
             GateScreen,
             Permission.OPERATE_GATE,
             keywords=("gate", "ورود", "خروج", "درب", "رسید"),
+        ),
+        ScreenSpec(
+            "dashboard",
+            "nav.dashboard",
+            "gauge",
+            DashboardScreen,
+            Permission.VIEW_REPORTS,
+            keywords=("dashboard", "داشبورد", "امروز"),
         ),
         ScreenSpec("home", "nav.home", "layout-dashboard", HomeScreen, keywords=("home", "خانه")),
         ScreenSpec(
@@ -54,6 +64,14 @@ def register_builtin_screens() -> None:
             BlocklistScreen,
             Permission.MANAGE_BLOCKLIST,
             keywords=("block", "مسدود"),
+        ),
+        ScreenSpec(
+            "reports",
+            "nav.reports",
+            "chart-column",
+            ReportsScreen,
+            Permission.VIEW_REPORTS,
+            keywords=("report", "گزارش", "مالی", "خروجی"),
         ),
         ScreenSpec(
             "users",
