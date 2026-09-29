@@ -22,6 +22,7 @@ from caspian_parking.config.defaults import product_name
 from caspian_parking.config.machine import Role
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_long_date, fa_time
+from caspian_parking.services.alerts import AlertMonitor, SystemAlert, printer_alerts
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.settings import get_setting
 from caspian_parking.ui.shell.command_palette import CommandPalette, PaletteItem, Provider, matches
@@ -30,7 +31,9 @@ from caspian_parking.ui.theme.icons import icon, icon_size
 from caspian_parking.ui.theme.manager import ThemeManager, set_dark_title_bar
 from caspian_parking.ui.theme.tokens import Motion, Size, Space
 from caspian_parking.ui.widgets.basics import Button, chip, label, set_chip
-from caspian_parking.ui.widgets.feedback import AlertBar, ModalDialog
+from caspian_parking.ui.widgets.feedback import Alert, AlertBar, ModalDialog
+
+ALERT_INTERVAL_MS = 60_000
 
 
 class Sidebar(QWidget):
@@ -214,6 +217,11 @@ class MainWindow(QMainWindow):
         self._pages: dict[str, QWidget] = {}
         self._build_user_menu()
         self._shortcuts()
+        self.monitor = AlertMonitor(ctx, [self._printer_alerts])
+        self._alert_timer = QTimer(self)
+        self._alert_timer.timeout.connect(self.refresh_alerts)
+        self._alert_timer.start(ALERT_INTERVAL_MS)
+        QTimer.singleShot(0, self.refresh_alerts)
         if self.screens:
             self.show_screen(self.screens[0].key)
 
@@ -317,6 +325,20 @@ class MainWindow(QMainWindow):
 
         if self.ctx.user is not None:
             ChangePasswordDialog(self.ctx, self.ctx.user.id, parent=self).exec()
+
+    def _printer_alerts(self) -> list[SystemAlert]:
+        gate = self._pages.get("gate")
+        printing = getattr(gate, "printing", None)
+        if printing is None:
+            return []
+        return printer_alerts(printing.printer.status())
+
+    def refresh_alerts(self) -> None:
+        current, cleared = self.monitor.evaluate()
+        for key in cleared:
+            self.alerts.clear_alert(key)
+        for alert in current:
+            self.alerts.raise_alert(Alert(alert.key, tr(alert.text_key, **alert.params), alert.level))
 
     def showEvent(self, event: object) -> None:
         set_dark_title_bar(self, ThemeManager.instance().palette.is_dark)

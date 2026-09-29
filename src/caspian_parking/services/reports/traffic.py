@@ -420,3 +420,37 @@ def open_sessions(session: Session, params: ReportParams) -> ReportResult:
         subtitle=params.label,
         widths=[24, 20, 12, 16, 16],
     )
+
+
+def outages(session: Session, params: ReportParams) -> ReportResult:
+    """Power / PC outages detected from heartbeat gaps (SPEC §4.12 #19)."""
+    from caspian_parking.data.models import Node, OutageEvent
+
+    nodes = {n.id: n.name for n in session.scalars(select(Node))}
+    rows = []
+    total_minutes = 0
+    for event in session.scalars(
+        select(OutageEvent)
+        .where(OutageEvent.started_at_utc >= params.start, OutageEvent.started_at_utc < params.end)
+        .order_by(OutageEvent.started_at_utc)
+    ):
+        minutes = int((event.ended_at_utc - event.started_at_utc).total_seconds() // 60)
+        total_minutes += minutes
+        rows.append(
+            [
+                nodes.get(event.origin_node, event.origin_node[:8]),
+                fa_datetime(event.started_at_utc),
+                fa_datetime(event.ended_at_utc),
+                fa_duration(minutes),
+                tr("outage.clean") if event.clean_shutdown else tr("outage.power"),
+            ]
+        )
+    return ReportResult(
+        tr("report.outages"),
+        [tr("outage.node"), tr("outage.from"), tr("outage.to"), tr("rep.col_duration"), tr("rep.col_kind")],
+        [Section("", rows)],
+        kpis=[(tr("rep.count"), fa_digits(len(rows))), (tr("outage.total"), fa_duration(total_minutes))],
+        totals={"count": len(rows), "minutes": total_minutes},
+        subtitle=params.label,
+        widths=[18, 20, 20, 16, 18],
+    )

@@ -96,6 +96,30 @@ def renew_wallets(ctx: AppContext) -> int:
     return len(PeopleService(ctx).renew_due_from_wallets(system=True))
 
 
+def backup_job(ctx: AppContext) -> None:
+    from caspian_parking.services.backup import create_backup, overdue
+
+    with ctx.read() as session:
+        enabled = bool(get_setting(session, "backup.enabled"))
+    if enabled and overdue(ctx):
+        create_backup(ctx, reason="scheduled")
+
+
+def housekeeping(ctx: AppContext) -> None:
+    """Daily: photo retention and (monthly) database maintenance."""
+    from caspian_parking.services.maintenance import run_maintenance
+    from caspian_parking.services.photos import cleanup
+
+    cleanup(ctx)
+    run_maintenance(ctx)
+
+
+def heartbeat_job(ctx: AppContext) -> None:
+    from caspian_parking.services.heartbeat import beat
+
+    beat(ctx)
+
+
 class AppScheduler:
     """Owns the APScheduler instance of this process."""
 
@@ -112,6 +136,14 @@ class AppScheduler:
         )
         self.scheduler.add_job(renew_wallets, "cron", args=[self.ctx], hour=8, minute=0, id="wallet_renewal")
         self.scheduler.add_job(catch_up, "date", args=[self.ctx], id="daily_catch_up")  # right after start
+        with self.ctx.read() as session:
+            backup_at = time.fromisoformat(str(get_setting(session, "backup.time")))
+        self.scheduler.add_job(
+            backup_job, "cron", args=[self.ctx], hour=backup_at.hour, minute=backup_at.minute, id="backup"
+        )
+        self.scheduler.add_job(backup_job, "date", args=[self.ctx], id="backup_catch_up")  # overdue → now
+        self.scheduler.add_job(housekeeping, "cron", args=[self.ctx], hour=3, minute=30, id="housekeeping")
+        self.scheduler.add_job(heartbeat_job, "interval", args=[self.ctx], seconds=30, id="heartbeat")
         self.scheduler.start()
         log.info("scheduler started (daily report at %s)", daily)
 
@@ -123,4 +155,13 @@ class AppScheduler:
         return [job.id for job in self.scheduler.get_jobs()]
 
 
-__all__ = ["AppScheduler", "catch_up", "due_days", "generate_daily_report", "renew_wallets"]
+__all__ = [
+    "AppScheduler",
+    "backup_job",
+    "catch_up",
+    "due_days",
+    "generate_daily_report",
+    "heartbeat_job",
+    "housekeeping",
+    "renew_wallets",
+]

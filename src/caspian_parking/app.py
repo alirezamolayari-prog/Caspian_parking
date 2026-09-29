@@ -20,6 +20,7 @@ from caspian_parking.data.repositories.system import UserRepository
 from caspian_parking.services import auth
 from caspian_parking.services.auth import CurrentUser
 from caspian_parking.services.context import AppContext, open_context
+from caspian_parking.services.heartbeat import detect_outage
 from caspian_parking.services.scheduler import AppScheduler
 from caspian_parking.ui.shell.main_window import MainWindow
 from caspian_parking.ui.theme.manager import ThemeManager, load_fonts
@@ -132,6 +133,22 @@ def run_smoke(app: QApplication, ctx: AppContext, started: float) -> int:
     return code
 
 
+def shutdown_tasks(ctx: AppContext) -> None:
+    """On close: backup (when enabled) and mark a clean shutdown for the outage log."""
+    from caspian_parking.services.backup import BackupError, create_backup
+    from caspian_parking.services.heartbeat import mark_clean_shutdown
+    from caspian_parking.services.settings import get_setting
+
+    try:
+        with ctx.read() as session:
+            on_close = bool(get_setting(session, "backup.on_close"))
+        if on_close:
+            create_backup(ctx, reason="on-close")
+    except (BackupError, OSError):
+        log.exception("backup on close failed")
+    mark_clean_shutdown(ctx)
+
+
 def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     args = parse_args(argv or [])
@@ -147,9 +164,11 @@ def main(argv: list[str] | None = None) -> int:
         ThemeManager.instance().apply(ctx.config.theme_default)
         if args.smoke:
             return run_smoke(app, ctx, started)
+        detect_outage(ctx)
         scheduler = AppScheduler(ctx)
         scheduler.start()
         stoppers.append(scheduler.stop)
+        stoppers.append(lambda: shutdown_tasks(ctx))
         controller = SessionController(ctx)
         if not controller.start():
             return 0

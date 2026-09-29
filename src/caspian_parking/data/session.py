@@ -34,6 +34,10 @@ class DeletionNotAllowed(RuntimeError):
     """Raised when code tries to delete a record that must be kept (deactivate instead)."""
 
 
+class ClosedYearError(RuntimeError):
+    """Raised when a local write would land in a closed fiscal year (the archive is read-only)."""
+
+
 class MissingWriteContext(RuntimeError):
     """Raised when a session writes data without a WriteContext."""
 
@@ -44,6 +48,7 @@ class WriteContext:
     user_id: str | None = None
     clock: Clock = SYSTEM_CLOCK
     reason: str | None = None
+    locked_before: datetime | None = None  # start of the open fiscal year once a year was closed
 
 
 def append_only_tables() -> frozenset[str]:
@@ -159,6 +164,13 @@ def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
             obj.created_at_utc = now
         if obj.created_by is None:
             obj.created_by = ctx.user_id
+        if (
+            ctx.locked_before is not None
+            and is_append_only(obj)
+            and obj.origin_node == ctx.node_id
+            and obj.created_at_utc < ctx.locked_before
+        ):
+            raise ClosedYearError("fiscal.closed_year")
         if isinstance(obj, ReferenceMixin):
             if obj.updated_at_utc is None:
                 obj.updated_at_utc = now

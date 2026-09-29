@@ -107,7 +107,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** each report's totals on a fixed fixture; exporters produce valid files; catch‑up logic; benchmarks (run at end of every phase ≥ 5, results in PROGRESS).
 - **Deps:** 3, 4.
 
-## ⬜ Phase 6 — Backup/restore, fiscal year, maintenance, photos, outages, training
+## 🔄 Phase 6 — Backup/restore, fiscal year, maintenance, photos, outages, training
 - [ ] Backups: SQLite online backup API, SQL Server `BACKUP DATABASE` (tested on LocalDB), zip of `receipt\ templates\ ads\ config\`, multiple destinations, retention, scheduled + on close + catch‑up, > 24 h warning; restore with confirmation + test restore (integrity check / `RESTORE VERIFYONLY`).
 - [ ] Fiscal year: define/close → archive read‑only (repositories reject writes into closed years), carry‑over (active subs, balances, debts, inside vehicles), counters reset & archived.
 - [ ] Monthly maintenance (ANALYZE + incremental vacuum; UPDATE STATISTICS / index rebuild).

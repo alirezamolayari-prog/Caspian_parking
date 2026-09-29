@@ -22,7 +22,7 @@ from caspian_parking.core.barcode import (
     entry_minute,
     looks_like_payload,
 )
-from caspian_parking.core.jalali import JalaliDate, jalali_of, local_date, local_day_range_utc, start_of_local_day_utc
+from caspian_parking.core.jalali import local_date, local_day_range_utc, start_of_local_day_utc
 from caspian_parking.core.money import require_int
 from caspian_parking.core.permissions import Permission
 from caspian_parking.core.plate import Plate, parse_plate
@@ -693,19 +693,20 @@ class GateService:
         return result
 
     def fiscal_year_start(self) -> datetime:
-        """Start of the current Jalali year (Phase 6 replaces this with the fiscal-year table)."""
-        today: JalaliDate = jalali_of(self._now())
-        return start_of_local_day_utc(JalaliDate(today.year, 1, 1).to_gregorian())
+        """Start of the open fiscal year (the immutable counters restart there)."""
+        from caspian_parking.services.fiscal import ensure_fiscal_year, year_start_utc
 
-    def counters(self, since: datetime | None = None) -> dict[str, int]:
+        with self.ctx.uow() as session:
+            return year_start_utc(ensure_fiscal_year(session, self._now()))
+
+    def counters(self, since: datetime | None = None, until: datetime | None = None) -> dict[str, int]:
         """Immutable per-category counters: derived from append-only entry events (nobody can edit them)."""
         start = since or self.fiscal_year_start()
         with self.ctx.read() as session:
-            rows = session.execute(
-                select(EntryEvent.category, func.count())
-                .where(EntryEvent.entry_at_utc >= start)
-                .group_by(EntryEvent.category)
-            ).all()
+            stmt = select(EntryEvent.category, func.count()).where(EntryEvent.entry_at_utc >= start)
+            if until is not None:
+                stmt = stmt.where(EntryEvent.entry_at_utc < until)
+            rows = session.execute(stmt.group_by(EntryEvent.category)).all()
         counts = {c.value: 0 for c in Category}
         for category, count in rows:
             counts[str(category)] = int(count)

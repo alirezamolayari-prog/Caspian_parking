@@ -32,6 +32,13 @@ DEFAULTS: dict[str, Any] = {
     "reports.daily_folder": "",
     "reports.daily_formats": ["excel", "word"],
     "reports.daily_last": "",
+    "backup.enabled": True,
+    "backup.time": "22:00",
+    "backup.keep": 30,
+    "backup.on_close": True,
+    "photos.retention_days": 90,
+    "maintenance.last_run": "",
+    "disk.min_free_percent": 5,
 }
 
 

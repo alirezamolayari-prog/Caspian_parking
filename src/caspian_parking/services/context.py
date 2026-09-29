@@ -9,6 +9,7 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import Engine
@@ -37,6 +38,7 @@ class AppContext:
     clock: Clock = SYSTEM_CLOCK
     training: bool = False
     user: CurrentUser | None = None
+    locked_before: datetime | None = None
     secrets: SecretStore = field(init=False)
 
     def __post_init__(self) -> None:
@@ -48,7 +50,11 @@ class AppContext:
 
     def write_context(self, reason: str | None = None) -> WriteContext:
         return WriteContext(
-            node_id=self.node_id, user_id=self.user.id if self.user else None, clock=self.clock, reason=reason
+            node_id=self.node_id,
+            user_id=self.user.id if self.user else None,
+            clock=self.clock,
+            reason=reason,
+            locked_before=self.locked_before,
         )
 
     @contextmanager
@@ -89,5 +95,10 @@ def open_context(
     with context.uow() as session:
         seed_defaults(session)
         register_node(session, config)
+    from caspian_parking.services.fiscal import ensure_fiscal_year, locked_before
+
+    with context.uow() as session:
+        ensure_fiscal_year(session, clock.now_utc())
+        context.locked_before = locked_before(session)
     log.info("opened %s database at %s", "training" if use_training else "local", db_path)
     return context

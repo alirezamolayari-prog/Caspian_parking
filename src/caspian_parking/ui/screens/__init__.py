@@ -17,6 +17,7 @@ def register_builtin_screens() -> None:
     from caspian_parking.ui.screens.settings_screen import SettingsScreen
     from caspian_parking.ui.screens.shops import ShopsScreen
     from caspian_parking.ui.screens.subscribers import SubscribersScreen
+    from caspian_parking.ui.screens.system import SystemScreen
     from caspian_parking.ui.screens.tariffs import TariffsScreen
     from caspian_parking.ui.screens.users import UsersScreen
 
@@ -89,6 +90,14 @@ def register_builtin_screens() -> None:
             TariffsScreen,
             Permission.CHANGE_TARIFFS,
             keywords=("tariff", "تعرفه", "ساعات کاری", "تعطیل", "قیمت"),
+        ),
+        ScreenSpec(
+            "system",
+            "nav.system",
+            "hard-drive-download",
+            SystemScreen,
+            Permission.BACKUP_RESTORE,
+            keywords=("backup", "پشتیبان", "سال مالی", "عکس", "آموزشی"),
         ),
         ScreenSpec("settings", "nav.settings", "settings", SettingsScreen, keywords=("settings", "تنظیم", "تم")),
     ]

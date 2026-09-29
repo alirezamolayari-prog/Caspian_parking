@@ -36,6 +36,7 @@ REPORTS: list[ReportDef] = [
     ReportDef("manual_changes", 14, FINANCIAL, money.manual_changes),
     ReportDef("block_attempts", 15, GENERAL, traffic.block_attempts),
     ReportDef("no_plate", 16, GENERAL, traffic.no_plate),
+    ReportDef("outages", 19, GENERAL, traffic.outages),
     ReportDef("open_sessions", 21, GENERAL, traffic.open_sessions),
 ]
 

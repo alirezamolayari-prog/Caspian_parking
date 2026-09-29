@@ -59,6 +59,8 @@ class MachineConfig:
     language: str = "fa"
     training_mode: bool = False
     first_run_done: bool = False
+    backup_destinations: list[str] = field(default_factory=list)
+    photos_folder: str = ""  # empty = <data root>\photos
 
     def to_json(self) -> dict[str, Any]:
         data = asdict(self)

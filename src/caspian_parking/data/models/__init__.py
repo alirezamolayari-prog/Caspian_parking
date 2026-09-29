@@ -33,6 +33,7 @@ from caspian_parking.data.models.system import (
     ShiftEvent,
     User,
 )
+from caspian_parking.data.models.system_ops import FiscalYear, OutageEvent, Photo
 from caspian_parking.data.models.tariff import Holiday, TariffVersionRecord
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     "Debt",
     "EntryEvent",
     "ExitEvent",
+    "FiscalYear",
     "Gate",
     "GateSequence",
     "GuestPermit",
@@ -52,9 +54,11 @@ __all__ = [
     "Level",
     "NightMark",
     "Node",
+    "OutageEvent",
     "Payment",
     "Person",
     "PersonPlate",
+    "Photo",
     "Reprint",
     "RolePreset",
     "Setting",
