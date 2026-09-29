@@ -98,7 +98,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** exhaustive date logic (boundaries of each light, negative days, early payment, max negative), concurrency (2nd plate → transient), wallet debit/low balance, import validation cases, exports open and contain rows, UI flows for new subscriber / blocked arrival / debtor.
 - **Deps:** 3.
 
-## ⬜ Phase 5 — Reports, dashboard, automatic daily report
+## 🔄 Phase 5 — Reports, dashboard, automatic daily report
 - [ ] Report framework: definition (params: Jalali range, gate, operator, category) → result (columns, rows, totals, chart data) → exporters Excel / Word / PDF (QTextDocument + QPdfWriter) / print; runs in QThreadPool; local‑data banner hook.
 - [ ] Reports 1–11, 12 (heatmap), 13 (monthly executive summary), 14–16, 21 (rest in their phases).
 - [ ] Dashboard screen (today KPIs, occupancy, heatmap widget, recent events).
