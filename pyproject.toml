@@ -41,7 +41,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["PLR2004", "DTZ", "PLC2401", "N806", "PT012"]
+"tests/**" = ["PLR2004", "DTZ", "PLC2401", "N806", "PT012", "PT018"]
 "src/caspian_parking/data/migrations/versions/*" = ["E501", "W291"]
 
 [tool.pytest.ini_options]

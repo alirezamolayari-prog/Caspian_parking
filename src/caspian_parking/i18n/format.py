@@ -51,6 +51,13 @@ def jalali_month_name(month: int) -> str:
     return tr(f"jmonth.{month}")
 
 
+def fa_long_date(value: datetime) -> str:
+    """``دوشنبه ۶ مهر ۱۴۰۵`` for a UTC instant (Tehran day)."""
+    local = jalali.to_local(value)
+    j = jalali.jalali_of(value)
+    return f"{weekday_name(local.weekday())} {fa_digits(j.day)} {jalali_month_name(j.month)} {fa_digits(j.year)}"
+
+
 def fa_duration(minutes: int) -> str:
     hours, mins = divmod(max(0, minutes), 60)
     if hours:

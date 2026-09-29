@@ -26,3 +26,14 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑016 — GitHub repo:** the owner already created `alirezamolayari-prog/Caspian_parking`; it is used instead of creating `caspian-parking` with `gh`. `gh` is not installed and not needed.
 - **D‑017 — SQL Server for development tests:** the local SQL Server 2008 R2 is too old for SQLAlchemy 2; tests use SQL Server 2012 LocalDB `(localdb)\v11.0` with ODBC Driver 13. The ODBC driver name is a setting; production uses ODBC Driver 18 + SQL Server Express 2022. T‑SQL is kept 2012‑compatible.
 - **D‑018 — Quality gate also runs mypy (lenient):** cheap and catches Qt API misuse early.
+
+## Phase 1 (2026‑09‑29)
+
+- **D‑019 — No default password, ever:** on first start the app asks for the first administrator account (the Phase 11 wizard will reuse this). Users created by an admin must change their password at first login.
+- **D‑020 — Roles:** permissions are stored per user (the checkbox matrix is the truth); role presets only fill the matrix. Admins can save any matrix as a new named preset. An admin cannot remove their own user‑management right or deactivate themselves.
+- **D‑021 — Audit is automatic:** session hooks write `audit_log` for every insert/update of reference data (password hashes are masked), so no code path can forget it. Reference rows are never deleted; they are deactivated (`is_active`).
+- **D‑022 — Config folder in the data root:** machine settings live in `<data root>\config\settings.json`; the data root itself is found via the `PARKING_DATA_ROOT` environment variable → `%PROGRAMDATA%\<product>\dataroot.txt` (written by installer/wizard) → default from `resources/app_defaults.json`. Product names live only in resource JSON, never in code (a test enforces this).
+- **D‑023 — Local DB file:** `<data root>\db\local.db` (training: `training.db`). A `db\` folder was added to the SPEC §2.6 layout.
+- **D‑024 — Shadows:** drop shadows only on raised cards; regular cards use borders (cheaper to paint on old gate PCs).
+- **D‑025 — Test note:** Qt's QTest cannot synthesize Arabic‑script key events offscreen (the process crashes), so tests type Latin keys for real and feed Persian text through the same `textEdited`/`setText` path.
+- **D‑026 — Formatting:** `ruff format` is part of the quality gate (line length 120).

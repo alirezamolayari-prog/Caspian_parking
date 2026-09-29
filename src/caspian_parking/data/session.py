@@ -205,7 +205,7 @@ def read_session(factory: sessionmaker[Session]) -> Iterator[Session]:
     try:
         yield session
     finally:
-        session.rollback()
+        # close() (not rollback()) keeps loaded objects usable after the block; it still ends the transaction.
         session.close()
 
 

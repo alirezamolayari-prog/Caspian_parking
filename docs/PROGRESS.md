@@ -16,3 +16,17 @@ powershell -ExecutionPolicy Bypass -File scripts\run.ps1     # start the app
 - Scripts: `setup.ps1`, `check.ps1`, `run.ps1`, `build.ps1` (packaging arrives in Phase 11).
 - Tests: `tests/test_smoke.py` (window builds offscreen, smoke subprocess exits 0).
 - Known gaps: none for this phase.
+
+## Phase 1 — Foundations ✅
+Built:
+- **Core (pure):** UUIDv7 ids, injectable clock, digit normalization (fa/ar/latin), integer‑Rial money helpers, Jalali/Tehran time, Iranian plate parsing (car / motorcycle / free‑form, canonical key), permission catalogue with operator/supervisor/admin presets.
+- **i18n:** `tr()` + `fa.json` (all UI text), bidi isolates (`ltr()`, `rtl()`), Persian display formatters (money, dates, durations, long Jalali date).
+- **Config:** data‑root folders (§2.6), machine `settings.json` (role, node id, gate, server), DPAPI secret store, rotating logs.
+- **Data:** SQLAlchemy models (nodes, gates, levels, settings, users, role presets, audit_log, shift_events), Alembic migration `0001_foundation` for SQLite and SQL Server, append‑only guard (ORM) + triggers (DB), automatic audit with old → new values, optimistic `row_version`, repositories, seed data from `resources/seed/site.json`.
+- **Services:** app context bootstrap (`open_context`), scrypt auth, shifts, typed settings.
+- **Design system:** tokens (dark/light from the brand palette), generated QSS, bundled Vazirmatn, Lucide icons recolored per theme, DWM dark title bar, follow‑Windows mode; widgets: Button, Card, TextField (digit normalization), Toast, dimmed+blurred ModalDialog, StatusLight, EmptyState, AlertBar, lazy DataTable, **PlateWidget** (painted Iranian plate, also used for receipts).
+- **Shell:** first‑admin creation, login, forced password change, main window (right sidebar, collapsible), top bar (gate, link status, Jalali clock, user menu, theme toggle, search), Ctrl+K command palette, F1 shortcuts, screens: Home, Users & permissions (matrix + custom presets), Audit log, Settings (theme per user; mall name, gates, levels & capacities).
+
+How to test: `scripts\check.ps1` (≈230 tests; DB tests run on SQLite **and** SQL Server LocalDB). Screenshots of both themes are written to `tests/artifacts/` by the UI tests / smoke.
+
+Known gaps (planned later): link status is static until Phase 9 (sync); tariff, gate operations and every other module arrive in their phases.

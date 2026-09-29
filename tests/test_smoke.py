@@ -4,30 +4,29 @@ import subprocess
 import sys
 
 from caspian_parking import version
-from caspian_parking.app import build_main_window, parse_args
+from caspian_parking.app import parse_args
 
 
 def test_version_is_set():
     assert version.__version__
 
 
-def test_main_window_builds(qtbot):
-    window = build_main_window()
-    qtbot.addWidget(window)
-    window.show()
-    assert window.isVisible()
-
-
-def test_parse_smoke_flag():
-    assert parse_args(["--smoke"]).smoke is True
+def test_parse_args():
+    args = parse_args(["--smoke", "--training"])
+    assert args.smoke is True
+    assert args.training is True
     assert parse_args([]).smoke is False
 
 
-def test_smoke_launch_exits_zero():
+def test_smoke_launch_exits_zero_and_is_fast():
     result = subprocess.run(
         [sys.executable, "-m", "caspian_parking", "--smoke"],
         capture_output=True,
-        timeout=60,
+        timeout=120,
         check=False,
     )
+    output = result.stdout.decode(errors="replace")
     assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert "main window ready in" in output
+    seconds = float(output.split("ready in")[1].split("s")[0])
+    assert seconds < 3.0  # SPEC §2.4: main window ready < 3 s

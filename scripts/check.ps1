@@ -1,4 +1,5 @@
-# Quality gate: ruff + mypy (lenient) + pytest (offscreen) + smoke launch.
+# Quality gate: ruff format + ruff + mypy (lenient) + pytest (offscreen) + smoke launch.
+# Run `ruff format src tests scripts` first if the format step fails.
 # Exits non-zero on the first failing step.
 # Usage:  powershell -ExecutionPolicy Bypass -File scripts\check.ps1
 $ErrorActionPreference = 'Stop'
@@ -20,6 +21,7 @@ function Invoke-Step([string]$name, [scriptblock]$block) {
     }
 }
 
+Invoke-Step 'ruff format' { & $py -m ruff format --check src tests scripts }
 Invoke-Step 'ruff' { & $py -m ruff check src tests scripts }
 Invoke-Step 'mypy' { & $py -m mypy }
 Invoke-Step 'pytest' { & $py -m pytest -q }
