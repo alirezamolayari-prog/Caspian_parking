@@ -33,6 +33,7 @@ from caspian_parking.data.models import (
     WalletTransaction,
 )
 from caspian_parking.data.repositories.base import ReferenceRepository
+from caspian_parking.services.ads import advertiser_discount
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.settings import get_setting
 from caspian_parking.services.tariff_service import load_schedule
@@ -257,9 +258,13 @@ class PeopleService:
 
     # ---------------------------------------------------------------- subscription payments
     def price_for(self, session: Session, person: Person) -> tuple[int, int]:
-        values = load_schedule(session).at(self._now())
-        price = person.price_override if person.price_override is not None else values.subscription_price
-        return price, values.subscription_days
+        now = self._now()
+        values = load_schedule(session).at(now)
+        if person.price_override is not None:
+            return person.price_override, values.subscription_days
+        price = values.subscription_price
+        discount = advertiser_discount(session, person.shop_id, local_date(now))
+        return price - price * discount // 100, values.subscription_days
 
     def _entries_while_overdue(self, session: Session, person: Person, until: datetime) -> list[datetime]:
         if person.subscription_end_utc is None:

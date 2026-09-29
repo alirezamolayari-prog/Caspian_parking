@@ -116,7 +116,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** backup→restore round trip (SQLite + LocalDB), retention, fiscal close carry‑over and read‑only, photo naming & retention, outage detection from heartbeat gaps, training isolation.
 - **Deps:** 3–5.
 
-## ⬜ Phase 7 — Advertising module
+## 🔄 Phase 7 — Advertising module
 - [ ] Ads (shop, dates, weekdays, package, price, text size, logo for premium), rotation + print counts, receipt ad section on/off, exit‑receipt ads.
 - [ ] Template folder watcher (QFileSystemWatcher; name = file name; categories = subfolders), searchable picker + 1‑bit preview, test print, edit in Paint, fallback + warning.
 - [ ] Coupons: purchase (direct or wallet), unique single‑use codes + expiry, print, redeem at exit (fee 0, fines stay), reports per shop.

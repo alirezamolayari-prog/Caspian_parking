@@ -21,6 +21,7 @@ DEFAULTS: dict[str, Any] = {
     "receipt.divider_image": False,
     "receipt.labels": {},
     "receipt.print_exit_receipt": False,
+    "receipt.template": "",
     "gate.preview_before_print": False,
     "gate.print_for_covered": False,  # print a paper ticket for subscribers / free access too
     "subscription.amber_days": 5,
@@ -39,6 +40,13 @@ DEFAULTS: dict[str, Any] = {
     "photos.retention_days": 90,
     "maintenance.last_run": "",
     "disk.min_free_percent": 5,
+    "ads.packages": {},
+    "ads.slots_per_day": 3,
+    "ads.advertiser_discount_percent": 10,
+    "ads.occasions": [],
+    "coupons.unit_price": 0,
+    "coupons.expiry_days": 30,
+    "adscreen.seconds": 8,
 }
 
 

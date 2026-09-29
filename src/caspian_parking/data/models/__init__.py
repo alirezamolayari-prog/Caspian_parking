@@ -1,5 +1,6 @@
 """All ORM models. Importing this package registers every table on ``Base.metadata``."""
 
+from caspian_parking.data.models.ads import Ad, AdPrint, Coupon, CouponBatch, CouponRedemption, RaffleDraw
 from caspian_parking.data.models.gate import (
     ActiveSession,
     Adjustment,
@@ -38,11 +39,16 @@ from caspian_parking.data.models.tariff import Holiday, TariffVersionRecord
 
 __all__ = [
     "ActiveSession",
+    "Ad",
+    "AdPrint",
     "Adjustment",
     "AuditLog",
     "Block",
     "BlockAttempt",
     "Cancellation",
+    "Coupon",
+    "CouponBatch",
+    "CouponRedemption",
     "Debt",
     "EntryEvent",
     "ExitEvent",
@@ -59,6 +65,7 @@ __all__ = [
     "Person",
     "PersonPlate",
     "Photo",
+    "RaffleDraw",
     "Reprint",
     "RolePreset",
     "Setting",

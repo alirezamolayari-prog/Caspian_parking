@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from caspian_parking.core.plate import Plate
@@ -46,3 +46,14 @@ class ReceiptContent:
     duration_minutes: int | None = None
     amount: int | None = None
     method_label: str | None = None
+
+
+@dataclass(frozen=True)
+class CouponReceipt:
+    """One printed coupon: shop header (or the shop's template), code barcode, expiry."""
+
+    code: str
+    shop_name: str
+    expires_on: date
+    template_path: Path | None = None
+    training: bool = False

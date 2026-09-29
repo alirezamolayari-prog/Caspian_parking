@@ -4,7 +4,53 @@
     "site.mall_name": "بازار مبل کاسپین",
     "site.mall_name_en": "Caspian Furniture Mall",
     "site.city": "تهران",
-    "site.address": "یافت‌آباد"
+    "site.address": "یافت‌آباد",
+    "ads.packages": {
+      "bronze": {
+        "price": 5000000,
+        "features": [
+          "text"
+        ]
+      },
+      "silver": {
+        "price": 12000000,
+        "features": [
+          "text",
+          "coupons"
+        ]
+      },
+      "gold": {
+        "price": 25000000,
+        "features": [
+          "text",
+          "coupons",
+          "logo",
+          "screen",
+          "led"
+        ]
+      }
+    },
+    "coupons.unit_price": 150000,
+    "ads.occasions": [
+      {
+        "month": 1,
+        "from": 1,
+        "to": 13,
+        "title": "نوروز"
+      },
+      {
+        "month": 9,
+        "from": 30,
+        "to": 30,
+        "title": "شب یلدا"
+      },
+      {
+        "month": 12,
+        "from": 15,
+        "to": 29,
+        "title": "خرید شب عید"
+      }
+    ]
   },
   "gates": [
     {

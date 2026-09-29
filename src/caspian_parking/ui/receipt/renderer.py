@@ -14,9 +14,10 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPolygonF
 
 from caspian_parking.core.barcode import QUIET_ZONE_MODULES, code128c_modules
+from caspian_parking.core.coupons import format_coupon_code
 from caspian_parking.core.digits import to_persian_digits
 from caspian_parking.core.plate import Plate, PlateKind
-from caspian_parking.core.receipt import ReceiptAd, ReceiptContent, ReceiptLayout
+from caspian_parking.core.receipt import CouponReceipt, ReceiptAd, ReceiptContent, ReceiptLayout
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.bidi import ltr
 from caspian_parking.i18n.format import fa_date, fa_duration, fa_money, fa_time
@@ -301,6 +302,33 @@ def render_receipt(content: ReceiptContent, layout: ReceiptLayout) -> RenderResu
         _barcode(canvas, content.payload, art, result)
         canvas.text(ltr(to_persian_digits(content.ticket_no)), 30, QFont.Weight.Bold)
         result.sections.append("barcode")
+    result.image = canvas.finish()
+    return result
+
+
+def render_coupon(coupon: CouponReceipt, layout: ReceiptLayout) -> RenderResult:
+    """Coupon receipt (SPEC §5.2): shop template or name, title, expiry, code barcode."""
+    canvas = _Canvas()
+    result = RenderResult(QImage())
+    if coupon.training:
+        _training_banner(canvas)
+    template = load_mono_image(coupon.template_path, WIDTH - 2 * MARGIN, 700) if coupon.template_path else None
+    if coupon.template_path and template is None:
+        result.warnings.append("receipt.template_missing")
+    if template is not None:
+        canvas.image_centered(template, gap=10)
+        result.sections.append("template")
+    else:
+        canvas.text(coupon.shop_name, 38, QFont.Weight.ExtraBold, gap=4)
+        result.sections.append("shop")
+    _divider(canvas, layout, result)
+    _offer_pill(canvas, _label(layout, "coupon_title"), large=True)
+    _leader_row(canvas, _label(layout, "coupon_expiry"), fa_date(coupon.expires_on))
+    canvas.text(_label(layout, "coupon_note"), 22, gap=10)
+    _divider(canvas, layout, result)
+    _barcode(canvas, coupon.code, None, result)
+    canvas.text(ltr(to_persian_digits(format_coupon_code(coupon.code))), 30, QFont.Weight.Bold)
+    result.sections.append("barcode")
     result.image = canvas.finish()
     return result
 

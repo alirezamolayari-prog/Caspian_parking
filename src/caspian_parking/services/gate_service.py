@@ -33,6 +33,7 @@ from caspian_parking.data.models import (
     ActiveSession,
     Adjustment,
     Cancellation,
+    CouponRedemption,
     Debt,
     EntryEvent,
     ExitEvent,
@@ -46,6 +47,7 @@ from caspian_parking.data.models.people import Person
 from caspian_parking.data.repositories.system import LevelRepository
 from caspian_parking.services.blocklist import BlocklistService, BlockMatch
 from caspian_parking.services.context import AppContext
+from caspian_parking.services.coupons import CouponError, check_coupon
 from caspian_parking.services.identification import Identification, Kind, identify
 from caspian_parking.services.settings import get_setting
 from caspian_parking.services.tariff_service import TariffContext, load_context
@@ -115,6 +117,7 @@ class ExitQuote:
     exit_at: datetime
     breakdown: PriceBreakdown
     lost_ticket: bool = False
+    coupon_id: str | None = None  # a scanned coupon (redeemed when the exit is completed)
 
     @property
     def amount_due(self) -> int:
@@ -370,9 +373,19 @@ class GateService:
             return int(session.scalar(select(func.count()).select_from(ActiveSession)) or 0)
 
     # ---------------------------------------------------------------- exit
-    def quote(self, session_id: str, lost_ticket: bool = False, coupon: bool = False) -> ExitQuote:
+    def quote(
+        self, session_id: str, lost_ticket: bool = False, coupon: bool = False, coupon_code: str | None = None
+    ) -> ExitQuote:
         active = self.get_active(session_id)
         now = self._now()
+        coupon_id = None
+        if coupon_code:
+            with self.ctx.read() as session:
+                try:
+                    coupon_id = check_coupon(session, coupon_code, local_date(now)).id
+                except CouponError as exc:
+                    raise GateError(str(exc)) from exc
+            coupon = True
         covered = active.category in (Category.SUBSCRIBER.value, Category.FREE.value)
         night_exempt = False
         if active.person_id:
@@ -388,7 +401,7 @@ class GateService:
             night_exempt=night_exempt,
             covered=covered,
         )
-        return ExitQuote(active, now, breakdown, lost_ticket)
+        return ExitQuote(active, now, breakdown, lost_ticket, coupon_id)
 
     def complete_exit(
         self,
@@ -432,6 +445,18 @@ class GateService:
                 session.add(
                     Adjustment(
                         session_id=active.id, kind=kind, amount_before=before, amount_after=after, reason=reason or ""
+                    )
+                )
+            if quote.coupon_id is not None:
+                if session.scalar(
+                    select(func.count())
+                    .select_from(CouponRedemption)
+                    .where(CouponRedemption.coupon_id == quote.coupon_id)
+                ):
+                    raise GateError("coupons.used")
+                session.add(
+                    CouponRedemption(
+                        coupon_id=quote.coupon_id, session_id=active.id, discount=breakdown.coupon_discount
                     )
                 )
             status = "paid" if amount_due > 0 else "free"
