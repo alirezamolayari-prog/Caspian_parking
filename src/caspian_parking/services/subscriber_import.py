@@ -14,6 +14,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from caspian_parking.config.defaults import site_seed
 from caspian_parking.core.digits import normalize_input, parse_int
 from caspian_parking.core.jalali import local_to_utc, parse_jdate
 from caspian_parking.core.permissions import Permission
@@ -88,8 +89,20 @@ def write_template(path: Path) -> Path:
         cell = sheet.cell(row=1, column=index, value=tr(f"import.col_{name}"))
         cell.font = Font(name="Tahoma", bold=True)
         sheet.column_dimensions[cell.column_letter].width = 18
-    example = [tr("import.example_first"), tr("import.example_last"), "09121234567", tr("import.example_shop"),
-               tr("import.inside"), tr("import.example_model"), "12ب345-22", "", "1405/07/01", 4000000, ""]  # fmt: skip
+    price = site_seed()["tariff"]["subscription_price"]
+    example = [
+        tr("import.example_first"),
+        tr("import.example_last"),
+        "09121234567",
+        tr("import.example_shop"),
+        tr("import.inside"),
+        tr("import.example_model"),
+        "12ب345-22",
+        "",
+        "1405/07/01",
+        price,
+        "",
+    ]
     for index, value in enumerate(example, start=1):
         sheet.cell(row=2, column=index, value=value)
     help_sheet = workbook.create_sheet(tr("import.help_sheet"))

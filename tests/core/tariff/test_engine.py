@@ -449,6 +449,7 @@ def test_money_is_integer_and_rounded(start, stay, seconds, vehicle, coupon):
     assert result.chargeable_minutes <= result.total_minutes
 
 
+@pytest.mark.serial
 def test_long_stay_is_fast():
     import time as _time
 

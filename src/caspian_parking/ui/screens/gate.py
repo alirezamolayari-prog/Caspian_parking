@@ -30,15 +30,18 @@ from PySide6.QtWidgets import (
 
 from caspian_parking.core.permissions import Permission
 from caspian_parking.core.plate import Plate, PlateKind
+from caspian_parking.core.subscriptions import EntryStatus
 from caspian_parking.core.tariff import PassThroughType, VehicleType, VisitKind
 from caspian_parking.data.models import ActiveSession, EntryEvent
 from caspian_parking.devices.printer import PrinterError
 from caspian_parking.devices.scanner import ScannerSource, SerialScanner, WedgeScanner
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_digits, fa_duration, fa_ltr, fa_money, fa_number, fa_time
+from caspian_parking.services.blocklist import BlockMatch
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.gate_service import (
     AlreadyInside,
+    Blocked,
     EntryResult,
     ExitQuote,
     GateError,
@@ -46,6 +49,7 @@ from caspian_parking.services.gate_service import (
     OpenDebt,
     PaymentMethod,
 )
+from caspian_parking.services.identification import Identification, Kind
 from caspian_parking.services.receipts import entry_content, exit_content, plate_of
 from caspian_parking.services.settings import get_setting
 from caspian_parking.ui.receipt.printing import ReceiptPrinting
@@ -59,8 +63,9 @@ from caspian_parking.ui.screens.gate_dialogs import (
 )
 from caspian_parking.ui.shell.main_window import add_shortcut_row
 from caspian_parking.ui.theme.tokens import Size, Space
+from caspian_parking.ui.widgets.alerts import AlarmOverlay
 from caspian_parking.ui.widgets.basics import Button, Card, TextField, chip, label, repolish, set_chip
-from caspian_parking.ui.widgets.feedback import Alert, EmptyState, confirm, show_toast
+from caspian_parking.ui.widgets.feedback import Alert, EmptyState, StatusLight, confirm, show_toast
 from caspian_parking.ui.widgets.inputs import MoneyField
 from caspian_parking.ui.widgets.plate import PlateWidget
 from caspian_parking.ui.widgets.plate_input import PlateDelegate, PlateInput
@@ -171,6 +176,20 @@ class GateScreen(Screen):
         banner_row.addWidget(self.collect_card)
         self.entry_banner.setVisible(False)
         card.add(self.entry_banner)
+        self.identity_banner = QFrame()
+        identity_row = QHBoxLayout(self.identity_banner)
+        identity_row.setContentsMargins(Space.M, Space.S, Space.M, Space.S)
+        self.identity_light = StatusLight("green", 18)
+        identity_row.addWidget(self.identity_light)
+        identity_texts = QVBoxLayout()
+        identity_texts.setSpacing(0)
+        self.identity_title = label("", "title")
+        self.identity_detail = label("", wrap=True)
+        identity_texts.addWidget(self.identity_title)
+        identity_texts.addWidget(self.identity_detail)
+        identity_row.addLayout(identity_texts, 1)
+        self.identity_banner.setVisible(False)
+        card.add(self.identity_banner)
         self.print_button = Button(
             tr("gate.print_entry"), "printer", variant="primary", size="lg", on_click=self.print_entry
         )
@@ -210,6 +229,45 @@ class GateScreen(Screen):
         self.entry_preview.set_plate(plate)
         self.pending_debts = self.gate.open_debts(plate) if plate is not None else []
         self._show_debt_banner()
+        self.show_identity(self.gate.identify(plate) if plate is not None else None)
+
+    def show_identity(self, ident: Identification | None) -> None:
+        """Banner for subscribers / free access / blocked plates (SPEC §4.2)."""
+        if ident is None or (ident.person is None and ident.block is None):
+            self.identity_banner.setVisible(False)
+            return
+        kind, title, detail, light = "info", "", "", None
+        if ident.block is not None:
+            kind, light = "danger", "black"
+            title = tr("gate.id_blocked")
+            detail = tr("block.generic") if ident.block.generic else ident.block.block.description
+        elif ident.kind is Kind.FREE and ident.person is not None:
+            kind = "success" if ident.free_ok else "warning"
+            title = tr(
+                "gate.id_free", name=ident.person.full_name, category=tr(f"free.cat_{ident.person.free_category}")
+            )
+            detail = "" if ident.free_ok else tr("gate.id_guest_expired")
+        elif ident.person is not None:
+            light = ident.light.value if ident.light else "black"
+            shop = ident.shop.name if ident.shop else (ident.person.brand or "")
+            title = f"{ident.person.full_name}{' — ' + shop if shop else ''}"
+            if ident.status is EntryStatus.NEGATIVE:
+                kind, detail = "warning", tr("gate.id_negative", n=fa_digits(-ident.days_left))
+            elif ident.status is EntryStatus.ACTIVE:
+                kind, detail = "success", tr("gate.id_days_left", n=fa_digits(ident.days_left))
+            else:
+                kind, detail = "danger", tr("gate.id_expired")
+        if ident.concurrency_exceeded and ident.block is None:
+            kind, detail = "warning", tr("gate.id_concurrency")
+        self.identity_banner.setProperty("banner", kind)
+        repolish(self.identity_banner)
+        self.identity_light.setVisible(light is not None)
+        if light is not None:
+            self.identity_light.set_status(light)
+        self.identity_title.setText(title)
+        self.identity_detail.setText(detail)
+        self.identity_detail.setVisible(bool(detail))
+        self.identity_banner.setVisible(True)
 
     def _show_debt_banner(self) -> None:
         total = sum(d.remaining for d in self.pending_debts)
@@ -271,12 +329,18 @@ class GateScreen(Screen):
         except AlreadyInside as exc:
             self._already_inside(exc.session)
             return None
+        except Blocked as exc:
+            self.show_blocked_alarm(exc.match)
+            return None
         except GateError as exc:
             show_toast(self, tr(str(exc)), "warning")
             return None
-        content = entry_content(result.session, result.payload, training=self.ctx.training)
-        self._print(content, "entry", preview=self._preview_enabled())
-        show_toast(self, tr("gate.entry_done", ticket=fa_ltr(str(result.ticket))))
+        if result.needs_receipt or self._print_for_covered():
+            content = entry_content(result.session, result.payload, training=self.ctx.training)
+            self._print(content, "entry", preview=self._preview_enabled())
+            show_toast(self, tr("gate.entry_done", ticket=fa_ltr(str(result.ticket))))
+        else:
+            show_toast(self, tr("gate.entry_covered"))
         self.plate_input.clear()
         if self.plate_input.mode() is PlateKind.MOTORCYCLE:
             self.toggle_motorcycle()
@@ -284,6 +348,16 @@ class GateScreen(Screen):
         self.plate_input.focus_first()
         self.refresh_lists()
         return result
+
+    def show_blocked_alarm(self, match: BlockMatch) -> AlarmOverlay:
+        message = tr("block.generic") if match.generic else match.block.description or tr("block.generic")
+        overlay = AlarmOverlay(self, tr("alarm.title"), message)
+        self.plate_input.clear()
+        return overlay
+
+    def _print_for_covered(self) -> bool:
+        with self.ctx.read() as session:
+            return bool(get_setting(session, "gate.print_for_covered"))
 
     def _preview_enabled(self) -> bool:
         with self.ctx.read() as session:

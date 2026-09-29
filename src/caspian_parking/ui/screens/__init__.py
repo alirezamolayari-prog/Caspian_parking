@@ -1,4 +1,4 @@
-"""Built-in screens. Each phase adds its screens to ``register_builtin_screens``."""
+"""Built-in screens. Each phase adds its screens to ``register_builtin_screens`` (sidebar order)."""
 
 from __future__ import annotations
 
@@ -8,13 +8,17 @@ from caspian_parking.ui.shell.registry import ScreenSpec, register
 
 def register_builtin_screens() -> None:
     from caspian_parking.ui.screens.audit import AuditScreen
+    from caspian_parking.ui.screens.blocklist import BlocklistScreen
+    from caspian_parking.ui.screens.free_access import FreeAccessScreen
     from caspian_parking.ui.screens.gate import GateScreen
     from caspian_parking.ui.screens.home import HomeScreen
     from caspian_parking.ui.screens.settings_screen import SettingsScreen
+    from caspian_parking.ui.screens.shops import ShopsScreen
+    from caspian_parking.ui.screens.subscribers import SubscribersScreen
     from caspian_parking.ui.screens.tariffs import TariffsScreen
     from caspian_parking.ui.screens.users import UsersScreen
 
-    register(
+    specs = [
         ScreenSpec(
             "gate",
             "nav.gate",
@@ -22,18 +26,44 @@ def register_builtin_screens() -> None:
             GateScreen,
             Permission.OPERATE_GATE,
             keywords=("gate", "ورود", "خروج", "درب", "رسید"),
-        )
-    )
-    register(ScreenSpec("home", "nav.home", "layout-dashboard", HomeScreen, keywords=("home", "خانه")))
-    register(
+        ),
+        ScreenSpec("home", "nav.home", "layout-dashboard", HomeScreen, keywords=("home", "خانه")),
         ScreenSpec(
-            "users", "nav.users", "users", UsersScreen, Permission.MANAGE_USERS, keywords=("user", "کاربر", "دسترسی")
-        )
-    )
-    register(
-        ScreenSpec("audit", "nav.audit", "history", AuditScreen, Permission.VIEW_AUDIT, keywords=("audit", "تغییر"))
-    )
-    register(
+            "subscribers",
+            "nav.subscribers",
+            "users",
+            SubscribersScreen,
+            Permission.MANAGE_SUBSCRIBERS,
+            keywords=("subscriber", "مشترک", "اشتراک", "پیگیری"),
+        ),
+        ScreenSpec(
+            "shops", "nav.shops", "store", ShopsScreen, Permission.MANAGE_SHOPS, keywords=("shop", "مغازه", "کیف پول")
+        ),
+        ScreenSpec(
+            "free_access",
+            "nav.free_access",
+            "badge-percent",
+            FreeAccessScreen,
+            Permission.GRANT_GUEST,
+            keywords=("guest", "مهمان", "پرسنل", "رایگان"),
+        ),
+        ScreenSpec(
+            "blocklist",
+            "nav.blocklist",
+            "ban",
+            BlocklistScreen,
+            Permission.MANAGE_BLOCKLIST,
+            keywords=("block", "مسدود"),
+        ),
+        ScreenSpec(
+            "users",
+            "nav.users",
+            "user-cog",
+            UsersScreen,
+            Permission.MANAGE_USERS,
+            keywords=("user", "کاربر", "دسترسی"),
+        ),
+        ScreenSpec("audit", "nav.audit", "history", AuditScreen, Permission.VIEW_AUDIT, keywords=("audit", "تغییر")),
         ScreenSpec(
             "tariffs",
             "nav.tariffs",
@@ -41,6 +71,8 @@ def register_builtin_screens() -> None:
             TariffsScreen,
             Permission.CHANGE_TARIFFS,
             keywords=("tariff", "تعرفه", "ساعات کاری", "تعطیل", "قیمت"),
-        )
-    )
-    register(ScreenSpec("settings", "nav.settings", "settings", SettingsScreen, keywords=("settings", "تنظیم", "تم")))
+        ),
+        ScreenSpec("settings", "nav.settings", "settings", SettingsScreen, keywords=("settings", "تنظیم", "تم")),
+    ]
+    for spec in specs:
+        register(spec)

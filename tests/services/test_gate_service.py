@@ -383,6 +383,7 @@ def test_supervisor_has_needed_permissions():
     assert Permission.CANCEL_TRANSACTIONS in SUPERVISOR_PERMISSIONS
 
 
+@pytest.mark.serial
 def test_entry_and_quote_are_fast(gate, clock):
     started = _time.perf_counter()
     result = gate.register_entry(PLATE)

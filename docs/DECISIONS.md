@@ -62,3 +62,16 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑043 — Overnight auto‑flag:** runs whenever the gate screen is shown (e.g. first login in the morning); idempotent per night.
 - **D‑044 — Pass‑through types:** courier → motorcycle, van unloading → van; taxi/other use the selected vehicle type.
 - **D‑045 — Duplicates:** one open session per plate (the operator is offered "exit this vehicle" or "print duplicate"); receipts without plate are debounced for the configured seconds (default 3) per gate.
+
+## Phase 4 (2026‑09‑30)
+
+- **D‑046 — People model:** subscribers and free‑access persons share one `people` table (`kind` = subscriber | free, `free_category` = staff | owner | guest). Plates live in `person_plates`; a plate can belong to only one active person.
+- **D‑047 — Subscription end date:** stored on the person (audited) and always written together with an append‑only `subscription_payments` event (previous end, new end, used negative days), so the history is complete.
+- **D‑048 — Covered visits:** active subscribers, negative‑allowed subscribers and valid free access enter as "covered": no parking fee, but night fines still apply unless the person has the permanent night exemption. Expired subscribers (not negative‑allowed) and a second plate over the concurrency limit are charged as transients (flagged).
+- **D‑049 — Negative subscriptions:** a permitted user allows it with a reason and a maximum number of days (default 10, setting `subscription.negative_max_days`). At payment the *distinct Tehran dates* with covered entries after the old end are deducted; the permission is consumed by the payment.
+- **D‑050 — Paper tickets for covered visits:** not printed by default (the entry is still recorded for traffic reports and negative‑day counting); setting `gate.print_for_covered` turns printing on.
+- **D‑051 — Wallets:** wallet balance = sum of signed append‑only wallet transactions. Automatic renewal from the wallet (button "renew due", also used by the scheduler in Phase 5) renews only when the balance covers the price; the shop's light is amber when the balance is below its threshold or below the next renewals.
+- **D‑052 — Blocklist:** blocking is per plate or per person (a person block covers all their plates). A blocked arrival is refused, logged in `block_attempts`, and shows a full‑screen red alarm with a beep. For the *security* category operators only see the generic message unless they have the "view block details" permission.
+- **D‑053 — Excel import:** rows with any problem are skipped and listed in an error report in `exports`; valid rows are imported in one transaction. Imported start dates become a zero‑amount `import` payment (so revenue reports are not inflated) and the row amount becomes the person's price.
+- **D‑054 — Exports:** Excel/Word exports are right‑to‑left, landscape, fit to page width, header row repeated, font Tahoma (present on every Windows PC). Plates are exported as text in a left‑to‑right embedding so digits never flip.
+- **D‑055 — Test speed:** the quality gate runs the suite on 4 processes (pytest‑xdist); tests marked `serial` (startup time, render time, quote time) run alone afterwards so machine load cannot distort them. The startup test takes the best of two launches.

@@ -212,6 +212,7 @@ def test_default_art_files(tmp_path, themed):
     assert not draw_wave().isNull()
 
 
+@pytest.mark.serial
 def test_render_and_print_is_fast(assets):
     printer = SimulatorPrinter()
     started = _time.perf_counter()

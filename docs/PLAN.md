@@ -90,11 +90,11 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** Luhn catches all single‑digit errors and adjacent transpositions (except 09↔90); Code 128 against reference vectors + checksum + module ≥ 3 px + quiet zones; payload round‑trip; HMAC rejects every single‑digit edit of fixed samples; renderer PNGs in `tests/artifacts/` (width 576, 1‑bit, no‑ad = 1 divider, ad = 2); pytest‑qt entry → preview → exit → payment; debounce; duplicate plate warning; cancel = new event; fleeing → debt → alert on next entry; counters immutable; timing: receipt render + simulated print < 1 s, exit price < 100 ms.
 - **Deps:** 1, 2.
 
-## 🔄 Phase 4 — Subscribers, shops, wallets, free access, blocklist
-- [ ] `core/subscriptions.py` (pure): end date, early renewal (+30 from current end), lights with configurable thresholds, negative subscription (distinct entered days deducted, max days), concurrency rule.
-- [ ] Models: persons/profiles, plates (normalized, many per profile), shops, wallet events, subscription payment events, negative allowances, free‑access permits (staff/owner/guest with ranges), blocks + block attempts, night‑fine exemptions.
-- [ ] Services: identification (plate → subscriber/free/blocked/debtor result used by the gate), renewals (wallet auto‑debit or supervisor action per setting, low‑balance light), follow‑up list, Excel/Word export, Excel import with template (`resources/templates/subscribers_import.xlsx`) + validation report.
-- [ ] UI: subscribers list/profile/new form, shop account + wallet + printable statement, free access, blocklist (register/unblock with reason; red full‑screen alarm + sound; generic text for security categories), follow‑up list; banners on the main screen.
+## ✅ Phase 4 — Subscribers, shops, wallets, free access, blocklist
+- [x] `core/subscriptions.py` (pure): end date, early renewal (+30 from current end), lights with configurable thresholds, negative subscription (distinct entered days deducted, max days), concurrency rule.
+- [x] Models: persons/profiles, plates (normalized, many per profile), shops, wallet events, subscription payment events, negative allowances, free‑access permits (staff/owner/guest with ranges), blocks + block attempts, night‑fine exemptions.
+- [x] Services: identification (plate → subscriber/free/blocked/debtor result used by the gate), renewals (wallet auto‑debit or supervisor action per setting, low‑balance light), follow‑up list, Excel/Word export, Excel import with template (`resources/templates/subscribers_import.xlsx`) + validation report.
+- [x] UI: subscribers list/profile/new form, shop account + wallet + printable statement, free access, blocklist (register/unblock with reason; red full‑screen alarm + sound; generic text for security categories), follow‑up list; banners on the main screen.
 - **Tests:** exhaustive date logic (boundaries of each light, negative days, early payment, max negative), concurrency (2nd plate → transient), wallet debit/low balance, import validation cases, exports open and contain rows, UI flows for new subscriber / blocked arrival / debtor.
 - **Deps:** 3.
 

@@ -54,4 +54,16 @@ Built:
 
 How to run/test: `scripts\check.ps1` (439 tests). In the app: sidebar → «درب ورود و خروج». Printed receipts (simulator) are saved in `<data root>\logs\printed`; test receipts in `tests/artifacts/receipt_*.png`.
 
-Known gaps: subscriber / free‑access / blocklist banners arrive in Phase 4; coupons and receipt ads in Phase 7; cameras in Phase 8; offline cross‑gate exits in Phase 9. The owner must copy the approved logo to `<data root>eceipt\logo.png`.
+Known gaps: subscriber / free‑access / blocklist banners arrive in Phase 4; coupons and receipt ads in Phase 7; cameras in Phase 8; offline cross‑gate exits in Phase 9. The owner must copy the approved logo to `<data root>\receipt\logo.png`.
+
+## Phase 4 — Subscribers, shops, wallets, free access, blocklist ✅
+Built:
+- Core `subscriptions`: status lights (green / amber ≤ 5 days / red ≤ 48 h / black), days left incl. negative, early renewal, negative subscription with distinct‑day deduction, concurrency rule, follow‑up order (100 % coverage). Tariff engine gained `covered` visits (no fee, night fines still apply).
+- Data (migration `0004_people`): `shops`, `wallet_transactions`, `people`, `person_plates`, `subscription_payments`, `guest_permits`, `blocks`, `block_attempts`, plus `person_id` on sessions, entries and visits.
+- Services: `PeopleService` (subscribers, plates, payments with preview, negative permission, night exemption, shops, wallet deposits / statement / low balance / auto renewal, free access + guest permits), `BlocklistService`, identification of a plate at the gate, follow‑up list with RTL Excel/Word export, Excel import with a validation report (template in `resources/templates/subscribers_import.xlsx`).
+- Gate: identity banner while typing (light, name, shop, days left, negative, expired, free access, concurrency, blocked), full‑screen red alarm + beep for blocked plates (attempt logged), no paper ticket for covered visits (setting), subscriber exits free except night fines.
+- UI: **Subscribers** (list with lights, profile, plates, pay dialog with new end date and deducted days, follow‑up tab with exports, import tab), **Shops & wallets**, **Free access**, **Blocklist** (register, active list with hidden security details, attempts, unblock with reason).
+
+How to run/test: `scripts/check.ps1` (≈ 520 tests; the suite now runs in parallel with pytest‑xdist and the timing tests run alone afterwards).
+
+Known gaps: coupon purchase from wallets arrives with the advertising module (Phase 7); the automatic wallet renewal is a button until the scheduler (Phase 5).

@@ -53,6 +53,7 @@ markers = [
     "mssql: needs a reachable SQL Server (LocalDB) - skipped with a reason when unavailable",
     "perf: performance benchmarks on the big synthetic dataset (scripts\\perf.ps1)",
     "slow: slower tests",
+    "serial: timing-sensitive tests, run alone after the parallel run (scripts/check.ps1)",
 ]
 filterwarnings = ["error::sqlalchemy.exc.SAWarning"]
 

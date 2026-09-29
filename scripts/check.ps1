@@ -24,7 +24,8 @@ function Invoke-Step([string]$name, [scriptblock]$block) {
 Invoke-Step 'ruff format' { & $py -m ruff format --check src tests scripts }
 Invoke-Step 'ruff' { & $py -m ruff check src tests scripts }
 Invoke-Step 'mypy' { & $py -m mypy }
-Invoke-Step 'pytest' { & $py -m pytest -q }
+Invoke-Step 'pytest (parallel)' { & $py -m pytest -q -n 4 -m "not perf and not serial" }
+Invoke-Step 'pytest (timing)' { & $py -m pytest -q -m serial }
 Invoke-Step 'smoke launch' { & $py -m caspian_parking --smoke }
 
 Write-Host 'Quality gate: GREEN' -ForegroundColor Green
