@@ -67,3 +67,25 @@ Built:
 How to run/test: `scripts/check.ps1` (≈ 520 tests; the suite now runs in parallel with pytest‑xdist and the timing tests run alone afterwards).
 
 Known gaps: coupon purchase from wallets arrives with the advertising module (Phase 7); the automatic wallet renewal is a button until the scheduler (Phase 5).
+
+## Phase 5 — Reports, dashboard, automatic daily report ✅
+Built:
+- Report framework (`services/reports`): parameters (Jalali range, gate, operator, category, text) → result (sections, KPIs, totals, chart) → Excel / Word / PDF (Qt `QPdfWriter`) / print. Reports run on a worker thread.
+- Reports delivered now (SPEC §4.12 numbers): 1 financial (cash / card / mall‑card; parking, debt recovery, subscriptions, wallet deposits; per gate and operator), 2 subscriptions, 3 subscriber traffic, 4 plate history + frequent visitors, 5 free access, 6 pass‑through, 7 fleeing & debts, 8 cancellations, 9 lost tickets & duplicates, 10 night parking & fines (with waivers), 11 motorcycles, 12 occupancy & peaks (hour × weekday heatmap, % of P1), 13 monthly executive summary (vs previous month), 14 manual amount changes, 15 blocked‑plate attempts, 16 receipts without plate, 21 open sessions. Reports 17–20 arrive with their phases.
+- Dashboard: live KPIs (inside, entries today, revenue today, follow‑up count, open debts), occupancy per level, 30‑day heatmap, today's entries.
+- Scheduler (APScheduler, Tehran time): daily report at a configurable time into `<data root>/reports/<year>/<month>` (or a custom folder), catch‑up of up to 7 missed days at start; daily wallet auto‑renewal.
+- Performance: `scripts/seed_bigdata.py` (1,000,000 visits, 2,000 subscribers, 200 inside) and `scripts/perf.ps1`.
+
+Benchmark results on 1,000,000 visits (this PC, `tests/artifacts/perf.json`):
+
+| Target (SPEC §2.4) | Limit | Measured |
+|---|---|---|
+| Plate search | < 200 ms | 3 ms |
+| Exit price calculation | < 100 ms | 2 ms |
+| Entry receipt (register + render) | < 1 s | 42 ms |
+| Main window ready | < 3 s | 0.8 s |
+| Slowest month report (executive summary) | < 5 s | 1.7 s |
+
+How to run/test: `scripts/check.ps1`; benchmarks `scripts/perf.ps1`. In the app: sidebar → «داشبورد» and «گزارش‌ها».
+
+Known gaps: reports read the local database; the "server database when connected" source and the local‑data banner switch arrive with sync in Phase 9 (`ReportResult.local_only` is already wired to the exports).

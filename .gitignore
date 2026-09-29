@@ -42,3 +42,6 @@ tests/artifacts/
 .idea/
 Thumbs.db
 desktop.ini
+
+# Synthetic performance dataset
+.bigdata/

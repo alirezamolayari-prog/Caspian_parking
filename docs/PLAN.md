@@ -98,12 +98,12 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** exhaustive date logic (boundaries of each light, negative days, early payment, max negative), concurrency (2nd plate → transient), wallet debit/low balance, import validation cases, exports open and contain rows, UI flows for new subscriber / blocked arrival / debtor.
 - **Deps:** 3.
 
-## 🔄 Phase 5 — Reports, dashboard, automatic daily report
-- [ ] Report framework: definition (params: Jalali range, gate, operator, category) → result (columns, rows, totals, chart data) → exporters Excel / Word / PDF (QTextDocument + QPdfWriter) / print; runs in QThreadPool; local‑data banner hook.
-- [ ] Reports 1–11, 12 (heatmap), 13 (monthly executive summary), 14–16, 21 (rest in their phases).
-- [ ] Dashboard screen (today KPIs, occupancy, heatmap widget, recent events).
-- [ ] APScheduler daily report with configurable time/folder, disable flag, catch‑up at next start.
-- [ ] `scripts/seed_bigdata.py` (1,000,000 visits, 2,000 subscribers) + `perf` benchmarks: plate search < 200 ms, exit calc < 100 ms, month report < 5 s, main window ready < 3 s; `scripts\perf.ps1`.
+## ✅ Phase 5 — Reports, dashboard, automatic daily report
+- [x] Report framework: definition (params: Jalali range, gate, operator, category) → result (columns, rows, totals, chart data) → exporters Excel / Word / PDF (QTextDocument + QPdfWriter) / print; runs in QThreadPool; local‑data banner hook.
+- [x] Reports 1–11, 12 (heatmap), 13 (monthly executive summary), 14–16, 21 (rest in their phases).
+- [x] Dashboard screen (today KPIs, occupancy, heatmap widget, recent events).
+- [x] APScheduler daily report with configurable time/folder, disable flag, catch‑up at next start.
+- [x] `scripts/seed_bigdata.py` (1,000,000 visits, 2,000 subscribers) + `perf` benchmarks: plate search < 200 ms, exit calc < 100 ms, month report < 5 s, main window ready < 3 s; `scripts\perf.ps1`.
 - **Tests:** each report's totals on a fixed fixture; exporters produce valid files; catch‑up logic; benchmarks (run at end of every phase ≥ 5, results in PROGRESS).
 - **Deps:** 3, 4.
 

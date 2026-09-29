@@ -75,3 +75,10 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑053 — Excel import:** rows with any problem are skipped and listed in an error report in `exports`; valid rows are imported in one transaction. Imported start dates become a zero‑amount `import` payment (so revenue reports are not inflated) and the row amount becomes the person's price.
 - **D‑054 — Exports:** Excel/Word exports are right‑to‑left, landscape, fit to page width, header row repeated, font Tahoma (present on every Windows PC). Plates are exported as text in a left‑to‑right embedding so digits never flip.
 - **D‑055 — Test speed:** the quality gate runs the suite on 4 processes (pytest‑xdist); tests marked `serial` (startup time, render time, quote time) run alone afterwards so machine load cannot distort them. The startup test takes the best of two launches.
+
+## Phase 5 (2026‑09‑30)
+
+- **D‑056 — Revenue definition:** the financial report counts money received: parking payments (incl. night fines), debt recoveries, subscription payments in cash / card / mall‑card and wallet deposits. Subscriptions paid *from* a wallet are not counted again, and imported subscriptions (amount 0) never appear.
+- **D‑057 — Occupancy:** computed by sweeping entries/exits (visits + vehicles inside) at hourly samples; the heatmap shows the average number inside per weekday × hour. "% of P1" = peak ÷ capacity of the first parking level.
+- **D‑058 — Daily report:** financial, open sessions, night parking and debts for the day, Excel + Word (no Qt in the scheduler thread). Missed days (PC off) are generated at the next start, at most the last 7 days.
+- **D‑059 — Performance dataset:** `.bigdata/` (git‑ignored) is built with bulk SQL for speed; benchmarks use the previous full Jalali month for "report of one month".
