@@ -22,6 +22,7 @@ from caspian_parking.i18n import tr
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.settings import get_setting, set_setting
 from caspian_parking.ui.screens.base import Screen
+from caspian_parking.ui.screens.settings_devices import HardwareTab, ReceiptTab
 from caspian_parking.ui.theme.manager import THEME_DARK, THEME_LIGHT, THEME_SYSTEM, ThemeManager
 from caspian_parking.ui.theme.tokens import Space
 from caspian_parking.ui.widgets.basics import Button, Card, TextField, label
@@ -35,6 +36,11 @@ class SettingsScreen(Screen):
         self.tabs.addTab(self._appearance_tab(), tr("settings.appearance"))
         if ctx.can(Permission.CHANGE_SETTINGS):
             self.tabs.addTab(self._site_tab(), tr("settings.site"))
+            self.receipt_tab = ReceiptTab(ctx)
+            self.tabs.addTab(self.receipt_tab, tr("settings.receipt"))
+        if ctx.can(Permission.HARDWARE_SETTINGS):
+            self.hardware_tab = HardwareTab(ctx)
+            self.tabs.addTab(self.hardware_tab, tr("settings.hardware"))
         self.body.addWidget(self.tabs, 1)
 
     # ---- appearance -----------------------------------------------------

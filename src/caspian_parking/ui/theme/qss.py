@@ -43,6 +43,7 @@ QPushButton:hover, QToolButton:hover { border-color: $border_strong; background:
 QPushButton:pressed, QToolButton:pressed { background: $surface_sunken; }
 QPushButton:focus, QToolButton:focus { border: 2px solid $focus; }
 QPushButton:disabled, QToolButton:disabled { color: $text_disabled; background: $surface; border-color: $border; }
+QPushButton:checked { background: $accent_soft; color: $accent_text; border: 1px solid $accent; }
 QPushButton[variant="primary"] { background: $accent; color: $text_on_accent; border: 1px solid $accent; }
 QPushButton[variant="primary"]:hover { background: $accent_hover; border-color: $accent_hover; }
 QPushButton[variant="primary"]:pressed { background: $accent_pressed; }
@@ -53,9 +54,9 @@ QPushButton[variant="danger"]:hover { background: $danger_hover; }
 QPushButton[variant="secondary"] { background: $surface; color: $secondary_text; border: 1px solid $secondary; }
 QPushButton[variant="ghost"], QToolButton[variant="ghost"] { background: transparent; border: 1px solid transparent; }
 QPushButton[variant="ghost"]:hover, QToolButton[variant="ghost"]:hover { background: $surface_alt; }
-QPushButton[size="lg"] { min-height: ${button_lg}px; font-size: ${body_lg}px; font-weight: 700;
+QPushButton[scale="lg"] { min-height: ${button_lg}px; font-size: ${body_lg}px; font-weight: 700;
     border-radius: ${r_card}px; padding: 0 ${xl}px; }
-QPushButton[size="sm"] { min-height: 30px; padding: 0 ${m}px; font-size: ${small}px; }
+QPushButton[scale="sm"] { min-height: 30px; padding: 0 ${m}px; font-size: ${small}px; }
 
 /* ---- navigation ---- */
 QWidget#Sidebar { background: $sidebar_bg; border-left: 1px solid $border; }
@@ -112,7 +113,7 @@ QPlainTextEdit, QTextEdit { padding: ${s}px; }
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus,
 QDateEdit:focus, QTimeEdit:focus { border: 2px solid $focus; }
 QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled { color: $text_disabled; background: $surface; }
-QLineEdit[size="lg"] { font-size: ${h3}px; min-height: ${button_lg}px; font-weight: 700; }
+QLineEdit[scale="lg"], QComboBox[scale="lg"] { font-size: ${h2}px; min-height: ${button_lg}px; font-weight: 700; }
 QLineEdit[invalid="true"] { border: 2px solid $danger; }
 QComboBox::drop-down { border: none; width: 28px; }
 QComboBox QAbstractItemView { background: $surface; color: $text; border: 1px solid $border_strong;
@@ -138,6 +139,10 @@ QListWidget::item:hover { background: $surface_alt; }
 QHeaderView::section { background: $surface_alt; color: $text_muted; border: none;
     border-bottom: 1px solid $border; padding: ${s}px; font-weight: 700; font-size: ${small}px; }
 QTableCornerButton::section { background: $surface_alt; border: none; }
+
+/* ---- progress (occupancy) ---- */
+QProgressBar { background: $surface_alt; border: none; border-radius: 4px; }
+QProgressBar::chunk { background: $accent; border-radius: 4px; }
 
 /* ---- tabs ---- */
 QTabWidget::pane { border: 1px solid $border; border-radius: ${r_card}px; background: $surface; top: -1px; }

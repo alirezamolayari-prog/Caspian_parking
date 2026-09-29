@@ -42,3 +42,16 @@ Built:
 How to run/test: `scripts\check.ps1`. In the app: sidebar → «تعرفه و ساعات کاری».
 
 Known gaps: none for this phase. Coupons and night‑fine exemptions are inputs to the engine; their management UIs arrive in Phases 4 and 7.
+
+## Phase 3 — Gate operations (standalone, manual plate) ✅
+Built:
+- Core: ticket numbers `G-SSSSS-C` with Luhn; 20‑digit barcode payload (gate, sequence, entry minute, 5‑digit HMAC‑SHA256) — every single‑digit edit is rejected; own Code 128 set C encoder/decoder.
+- Data (migration `0003_gate`): `active_sessions` (inside list), `visits` (history projection), append‑only `entry_events`, `exit_events`, `payments`, `adjustments`, `cancellations`, `debts`, `reprints`, `night_marks` (DB triggers), `gate_sequences`.
+- `GateService`: entry (one session per plate, no‑plate debounce, categories), resolve by barcode / ticket number / plate, quote, exit with cash / card / mall‑card, manual amount and night‑fine change (permission + reason → adjustment event), fleeing → debt → collection (partial allowed), cancel entry / payment (+ corrected payment), duplicates, night marks + automatic overnight flag, occupancy per level, immutable counters.
+- Receipts: 1‑bit renderer following SPEC §5.1 (logo, diamond divider or image, ad section only when an ad exists, plate frame, dotted‑leader rows, Code 128 with tree/wave art, ticket number), duplicate/motorcycle/no‑plate/training variants, exit receipt, security list of vehicles inside. **Tests scan the printed barcode with a real reader (zxing‑cpp).**
+- Devices: printers (simulator → PNG, Windows driver via QPrinter, raw ESC/POS raster), scanners (keyboard‑wedge burst detection, serial COM, simulator).
+- UI: **Gate screen** (entry lane with big plate input + vehicle type, exit lane with breakdown and payment buttons, inside / today / unidentified tabs with painted plates, occupancy bars, counters, debt banner, F‑keys F2–F12 + Enter/Space, scanner goes straight to exit), dialogs (reason, preview, already inside, lost ticket), Settings → **Receipt** (sections, art, texts, preview, reset) and **Hardware** (gate code, printer + test print, scanner + live scan test).
+
+How to run/test: `scripts\check.ps1` (439 tests). In the app: sidebar → «درب ورود و خروج». Printed receipts (simulator) are saved in `<data root>\logs\printed`; test receipts in `tests/artifacts/receipt_*.png`.
+
+Known gaps: subscriber / free‑access / blocklist banners arrive in Phase 4; coupons and receipt ads in Phase 7; cameras in Phase 8; offline cross‑gate exits in Phase 9. The owner must copy the approved logo to `<data root>eceipt\logo.png`.

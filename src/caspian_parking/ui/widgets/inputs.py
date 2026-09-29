@@ -168,7 +168,7 @@ class JalaliCalendarPopup(QFrame):
         self.day_buttons: list[QPushButton] = []
         for index in range(GRID_ROWS * 7):
             button = QPushButton()
-            button.setProperty("size", "sm")
+            button.setProperty("scale", "sm")
             button.setFixedSize(40, 34)
             button.setCheckable(True)
             button.clicked.connect(lambda _c=False, i=index: self._clicked(i))

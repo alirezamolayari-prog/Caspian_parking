@@ -77,7 +77,7 @@ class Button(QPushButton):
         if variant:
             self.setProperty("variant", variant)
         if size:
-            self.setProperty("size", size)
+            self.setProperty("scale", size)
         if size == "lg":
             self.setMinimumHeight(Size.BUTTON_LG)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -96,7 +96,7 @@ class Button(QPushButton):
 
     def _refresh_icon(self, *_args: object) -> None:
         if self._icon_name:
-            size = Size.ICON_LG if self.property("size") == "lg" else Size.ICON
+            size = Size.ICON_LG if self.property("scale") == "lg" else Size.ICON
             self.setIcon(icon(self._icon_name, self._icon_token(), size))
             self.setIconSize(icon_size(size))
 

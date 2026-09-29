@@ -15,7 +15,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from caspian_parking.core.digits import normalize_input
 
@@ -146,6 +146,9 @@ class WedgeScanner(ScannerSource):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if self._replaying or event.type() != QEvent.Type.KeyPress or not isinstance(event, QKeyEvent):
             return False
+        owner = self.parent()
+        if isinstance(owner, QWidget) and not owner.isVisible():
+            return False  # only listen while the owning screen is on screen
         if event.isAutoRepeat():
             return False
         return self.handle_key(watched, event)

@@ -144,3 +144,15 @@ def test_no_tariff_amounts_in_code():
             if isinstance(node, ast.Constant) and type(node.value) is int and node.value in SPEC_AMOUNTS:
                 offenders.append(f"{path.relative_to(SRC)}:{node.lineno}")
     assert not offenders, offenders
+
+
+def test_style_hooks_do_not_shadow_qt_properties():
+    """Dynamic properties named like built-in Q_PROPERTYs (size, font, …) are silently ignored by Qt."""
+    reserved = ("size", "font", "palette", "geometry", "enabled", "visible", "text")
+    offenders = []
+    for path in (SRC / "ui").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for name in reserved:
+            if f'setProperty("{name}"' in text:
+                offenders.append(f"{path.name}: {name}")
+    assert not offenders, offenders

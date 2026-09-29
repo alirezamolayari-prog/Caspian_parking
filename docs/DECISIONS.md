@@ -47,3 +47,18 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑031 — Pass‑through fine:** a pass‑through (عبوری) that happens to cross closing time still gets the night fine (literal SPEC; the configurable grace minutes exist for this). Pass‑through limit uses the total stay, not only chargeable minutes.
 - **D‑032 — Tariff defaults in seed data:** SPEC §4.5 amounts live in `resources/seed/site.json` (`tariff`, `calendar`); a test forbids those amounts in code.
 - **D‑033 — Time inputs:** Qt reverses date/time sections for right‑to‑left locales (09:30 would show as 30:09), so times use a small LTR `TimeField` with Persian digits instead of `QTimeEdit`. The app's default QLocale is Persian (Persian digits in spin boxes).
+
+## Phase 3 (2026‑09‑29)
+
+- **D‑034 — Luhn:** standard Luhn over the digits of gate + sequence. The SPEC example `1-24715-8` is illustrative only; with standard Luhn that ticket is `1-24715-4`.
+- **D‑035 — Barcode sequence:** the payload carries the sequence modulo 10⁶ (6 digits keep the payload at 20 digits); a ticket is found by gate + entry minute + sequence mod 10⁶, which is unique. The printed ticket number always shows the full sequence.
+- **D‑036 — Occupancy per level:** there are no per‑level sensors, so vehicles inside are counted against the open parking levels in order (P1 first). Total inside vs total open capacity is exact.
+- **D‑037 — Immutable counters:** derived from append‑only entry events since the start of the Jalali year (Phase 6 switches to the fiscal‑year table). Nobody can edit them; cancelled entries still count (the vehicle did pass).
+- **D‑038 — Payment corrections:** a wrong payment is voided with a cancellation event (reason required, permission *cancel transactions*) and the correct payment is recorded as a new event.
+- **D‑039 — Printer failure never loses an entry:** the entry is committed first; a printer error raises the alert bar + toast and the receipt can be reprinted (المثنی) from the "already inside" dialog or the lost‑ticket dialog.
+- **D‑040 — Receipt artwork:** the pine‑forest and wave barcode art are generated into `<data root>eceiptarcode-art` on first use; the logo (`receipt\logo.png`) must be supplied by the owner — until then receipts print without it and the alert bar says so.
+- **D‑041 — Style hooks:** the QSS size hook is the dynamic property `scale` (Qt silently ignores dynamic properties named like built‑in ones such as `size`; a test guards this).
+- **D‑042 — Scanner scope:** the keyboard‑wedge filter only acts while its owning screen is visible; serial scanners run on a background thread with automatic reconnect.
+- **D‑043 — Overnight auto‑flag:** runs whenever the gate screen is shown (e.g. first login in the morning); idempotent per night.
+- **D‑044 — Pass‑through types:** courier → motorcycle, van unloading → van; taxi/other use the selected vehicle type.
+- **D‑045 — Duplicates:** one open session per plate (the operator is offered "exit this vehicle" or "print duplicate"); receipts without plate are debounced for the configured seconds (default 3) per gate.

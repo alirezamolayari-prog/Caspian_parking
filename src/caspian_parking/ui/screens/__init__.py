@@ -8,11 +8,22 @@ from caspian_parking.ui.shell.registry import ScreenSpec, register
 
 def register_builtin_screens() -> None:
     from caspian_parking.ui.screens.audit import AuditScreen
+    from caspian_parking.ui.screens.gate import GateScreen
     from caspian_parking.ui.screens.home import HomeScreen
     from caspian_parking.ui.screens.settings_screen import SettingsScreen
     from caspian_parking.ui.screens.tariffs import TariffsScreen
     from caspian_parking.ui.screens.users import UsersScreen
 
+    register(
+        ScreenSpec(
+            "gate",
+            "nav.gate",
+            "circle-parking",
+            GateScreen,
+            Permission.OPERATE_GATE,
+            keywords=("gate", "ورود", "خروج", "درب", "رسید"),
+        )
+    )
     register(ScreenSpec("home", "nav.home", "layout-dashboard", HomeScreen, keywords=("home", "خانه")))
     register(
         ScreenSpec(

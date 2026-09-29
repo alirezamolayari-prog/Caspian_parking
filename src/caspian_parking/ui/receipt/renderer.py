@@ -7,6 +7,7 @@ Thermal printers cannot shape Persian text, therefore the whole receipt is an im
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, Qt
@@ -325,3 +326,40 @@ def _duplicate_label(canvas: _Canvas, text: str) -> None:
     painter.drawRoundedRect(rect, 12, 12)
     painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
     canvas.y += 84
+
+
+@dataclass(frozen=True)
+class InsideRow:
+    plate: Plate | None
+    entry_at: datetime
+    ticket_no: str
+    vehicle_label: str
+
+
+def render_inside_list(title: str, printed_at: datetime, rows: list[InsideRow]) -> QImage:
+    """Security list of vehicles still inside at closing (thermal printer width)."""
+    canvas = _Canvas()
+    canvas.text(title, 34, QFont.Weight.ExtraBold, gap=4)
+    canvas.text(f"{fa_date(printed_at)}  {fa_time(printed_at)}", 26, QFont.Weight.Medium, gap=4)
+    canvas.text(tr("receipt.inside_count", n=to_persian_digits(str(len(rows)))), 26, QFont.Weight.Bold, gap=10)
+    _builtin_divider(canvas)
+    for row in rows:
+        plate_height = 44.0
+        width = plate_height * (
+            MOTO_ASPECT if row.plate is not None and row.plate.kind is PlateKind.MOTORCYCLE else CAR_ASPECT
+        )
+        rect = QRectF(WIDTH - MARGIN - width, canvas.y, width, plate_height)
+        paint_plate(canvas.painter, rect, row.plate, PlateStyle.monochrome())
+        canvas.painter.setFont(_font(24, QFont.Weight.DemiBold))
+        canvas.painter.setPen(canvas.ink)
+        details = f"{fa_time(row.entry_at)}  {ltr(to_persian_digits(row.ticket_no))}"
+        canvas.painter.drawText(
+            QRectF(MARGIN, canvas.y, WIDTH - 2 * MARGIN - width - 12, plate_height),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignAbsolute | Qt.AlignmentFlag.AlignVCenter,
+            details,
+        )
+        canvas.y += plate_height + 10
+        if canvas.y > CANVAS_HEIGHT - 120:
+            canvas.text(tr("receipt.list_truncated"), 22)
+            break
+    return canvas.finish()
