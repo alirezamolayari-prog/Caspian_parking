@@ -223,5 +223,5 @@ def export_word(table: ExportTable, path: Path) -> Path:
         footer = document.add_paragraph()
         _rtl_paragraph(footer)
         _rtl_run(footer.add_run(table.footer), size=9)
-    document.save(path)
+    document.save(str(path))
     return path
