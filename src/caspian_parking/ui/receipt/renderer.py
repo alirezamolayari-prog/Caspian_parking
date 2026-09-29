@@ -76,7 +76,7 @@ class _Canvas:
         self.painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         self.painter.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.ink = QColor(RECEIPT_INK)
-        self.y = MARGIN
+        self.y: float = MARGIN
 
     def space(self, pixels: int) -> None:
         self.y += pixels
@@ -175,11 +175,13 @@ def _leader_row(canvas: _Canvas, label: str, value: str) -> None:
 
 
 def _plate(canvas: _Canvas, plate: Plate | None) -> None:
+    height: float
+    width: float
     if plate is not None and plate.kind is PlateKind.MOTORCYCLE:
-        height = 128
+        height = 128.0
         width = height * MOTO_ASPECT
     else:
-        width = 460
+        width = 460.0
         height = width / CAR_ASPECT
     rect = QRectF((WIDTH - width) / 2, canvas.y, width, height)
     paint_plate(canvas.painter, rect, plate, PlateStyle.monochrome())
