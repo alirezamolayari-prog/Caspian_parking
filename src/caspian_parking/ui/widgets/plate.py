@@ -69,6 +69,7 @@ def paint_plate(painter: QPainter, rect: QRectF, plate: Plate | None, style: Pla
     """Paint ``plate`` into ``rect``; ``None`` paints an empty frame (receipt without plate)."""
     style = style or PlateStyle.screen()
     painter.save()
+    painter.setLayoutDirection(Qt.LayoutDirection.LeftToRight)  # the plate layout is physical, never mirrored
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
     h = rect.height()

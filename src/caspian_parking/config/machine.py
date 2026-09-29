@@ -37,12 +37,24 @@ class ServerConfig:
 
 
 @dataclass
+class DeviceConfig:
+    """Hardware attached to this PC (SPEC §6). Everything defaults to simulators."""
+
+    printer_backend: str = "simulator"  # simulator | windows | escpos
+    printer_name: str = ""
+    scanner_mode: str = "wedge"  # wedge (USB keyboard) | serial | off
+    scanner_port: str = ""
+    scanner_baud: int = 9600
+
+
+@dataclass
 class MachineConfig:
     node_id: str = field(default_factory=uuid7)
     node_name: str = field(default_factory=socket.gethostname)
     role: Role = Role.STANDALONE
     gate_code: int | None = 1
     server: ServerConfig = field(default_factory=ServerConfig)
+    devices: DeviceConfig = field(default_factory=DeviceConfig)
     theme_default: str = "dark"
     language: str = "fa"
     training_mode: bool = False
@@ -57,10 +69,12 @@ class MachineConfig:
     def from_json(cls, data: dict[str, Any]) -> MachineConfig:
         server_fields = ServerConfig.__dataclass_fields__
         server = ServerConfig(**{k: v for k, v in data.get("server", {}).items() if k in server_fields})
-        known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k != "server"}
+        device_fields = DeviceConfig.__dataclass_fields__
+        devices = DeviceConfig(**{k: v for k, v in data.get("devices", {}).items() if k in device_fields})
+        known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k not in ("server", "devices")}
         if "role" in known:
             known["role"] = Role(known["role"])
-        return cls(server=server, **known)
+        return cls(server=server, devices=devices, **known)
 
 
 def load_machine_config(config_dir: Path) -> MachineConfig:

@@ -14,6 +14,14 @@ DEFAULTS: dict[str, Any] = {
     "security.password_min_length": 6,
     "gate.debounce_seconds": 3,
     "ui.follow_windows_theme": False,
+    "receipt.show_logo": True,
+    "receipt.show_ad": True,
+    "receipt.show_barcode_art": True,
+    "receipt.barcode_art": "tree.png",
+    "receipt.divider_image": False,
+    "receipt.labels": {},
+    "receipt.print_exit_receipt": False,
+    "gate.preview_before_print": False,
 }
 
 
