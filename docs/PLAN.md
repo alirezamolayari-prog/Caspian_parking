@@ -63,7 +63,7 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Acceptance:** check.ps1 green; push works; tag `phase-0`.
 - **Risks:** first push may need the owner's browser login.
 
-## ⬜ Phase 1 — Foundations
+## 🔄 Phase 1 — Foundations
 - [ ] **Core utils:** `ids` (UUIDv7), `clock`, `money` (format with separators + Persian digits), `digits` (normalize fa/ar/latin), `jalali` (UTC↔Tehran↔Jalali, formatting), `plate` (Iranian plate parse/normalize/format: `12ب345-22`, motorcycle and free‑form), `i18n.tr` + `fa.json`, `i18n.bidi` (`ltr()`, `rtl()` isolates).
 - [ ] **Config & logging:** machine `settings.json` in data root `config\`, data‑root folder creation (§2.6), rotating size‑capped logs, DPAPI secrets (with test fallback).
 - [ ] **DB layer:** engine factory (SQLite WAL, `synchronous=FULL`, FK on, busy timeout; mssql via pyodbc), custom types, `EventMixin`/`ReferenceMixin`, models: nodes, gates, levels, users, roles, permissions, role/user permissions, shifts, settings (versioned key→JSON), audit_log. Alembic env for both dialects (`render_as_batch` on SQLite). Append‑only guard + triggers. Base repositories with audit.

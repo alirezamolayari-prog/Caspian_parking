@@ -1,0 +1,33 @@
+{
+  "_comment": "Persian UI strings. Keys are grouped by prefix. Placeholders use {name}.",
+
+  "money.unit": "ریال",
+  "duration.minutes": "{m} دقیقه",
+  "duration.hours_minutes": "{h} ساعت و {m} دقیقه",
+
+  "weekday.0": "دوشنبه",
+  "weekday.1": "سه‌شنبه",
+  "weekday.2": "چهارشنبه",
+  "weekday.3": "پنجشنبه",
+  "weekday.4": "جمعه",
+  "weekday.5": "شنبه",
+  "weekday.6": "یکشنبه",
+
+  "jmonth.1": "فروردین",
+  "jmonth.2": "اردیبهشت",
+  "jmonth.3": "خرداد",
+  "jmonth.4": "تیر",
+  "jmonth.5": "مرداد",
+  "jmonth.6": "شهریور",
+  "jmonth.7": "مهر",
+  "jmonth.8": "آبان",
+  "jmonth.9": "آذر",
+  "jmonth.10": "دی",
+  "jmonth.11": "بهمن",
+  "jmonth.12": "اسفند",
+
+  "plate.iran": "ایران",
+  "plate.ir_strip_top": "I.R.",
+  "plate.ir_strip_bottom": "IRAN",
+  "plate.empty": "بدون پلاک"
+}

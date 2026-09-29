@@ -1,0 +1,19 @@
+{
+  "_comment": "Seed data for a fresh installation (v1 site). Everything here is editable in Settings.",
+  "settings": {
+    "site.mall_name": "بازار مبل کاسپین",
+    "site.mall_name_en": "Caspian Furniture Mall",
+    "site.city": "تهران",
+    "site.address": "یافت‌آباد"
+  },
+  "gates": [
+    {"code": 1, "name": "درب یافت‌آباد"},
+    {"code": 2, "name": "درب اسدنژاد"}
+  ],
+  "levels": [
+    {"code": "P1", "name": "طبقه P1", "capacity": 202, "is_parking": true, "is_open": true, "sort": 1},
+    {"code": "P2", "name": "طبقه P2", "capacity": 221, "is_parking": true, "is_open": false, "sort": 2},
+    {"code": "P3", "name": "طبقه P3", "capacity": 221, "is_parking": true, "is_open": false, "sort": 3},
+    {"code": "P4", "name": "طبقه P4 (انبار)", "capacity": 0, "is_parking": false, "is_open": false, "sort": 4}
+  ]
+}

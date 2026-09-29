@@ -1,0 +1,8 @@
+{
+  "_comment": "Installation defaults. Product-specific names live here, never in code.",
+  "product_name": "Caspian Parking",
+  "product_folder": "CaspianParking",
+  "data_root_default": "C:\\CaspianParking",
+  "local_db_file": "local.db",
+  "training_db_file": "training.db"
+}
