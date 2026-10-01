@@ -17,6 +17,7 @@ from PySide6.QtWidgets import QApplication, QDialog
 from caspian_parking.config.defaults import product_name
 from caspian_parking.data.models import User
 from caspian_parking.data.repositories.system import UserRepository
+from caspian_parking.i18n import tr
 from caspian_parking.services import auth
 from caspian_parking.services.auth import CurrentUser
 from caspian_parking.services.context import AppContext, open_context
@@ -171,6 +172,28 @@ def update_at_start(ctx: AppContext) -> bool:
     return True
 
 
+def first_run(ctx: AppContext) -> AppContext | None:
+    """Fresh installation: run the setup wizard and reopen the database where the user chose."""
+    from caspian_parking.services.setup import SetupError, apply_setup, needs_wizard
+    from caspian_parking.ui.shell.wizard import FirstRunWizard
+
+    if not needs_wizard(ctx):
+        return ctx
+    error = ""
+    while True:
+        wizard = FirstRunWizard(ctx)
+        wizard.error.setText(error)
+        if wizard.exec() != QDialog.DialogCode.Accepted:
+            ctx.close()
+            return None
+        try:
+            return apply_setup(ctx, wizard.choices())
+        except Exception as exc:  # e.g. the server is not reachable: show it and let the user correct it
+            log.warning("setup failed: %s", exc)
+            error = tr(str(exc)) if isinstance(exc, SetupError) else str(exc).splitlines()[0][:200]
+            ctx = open_context(ctx.data_root.root)
+
+
 def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     args = parse_args(argv or [])
@@ -194,6 +217,10 @@ def main(argv: list[str] | None = None) -> int:
         ThemeManager.instance().apply(ctx.config.theme_default)
         if args.smoke:
             return run_smoke(app, ctx, started)
+        opened = first_run(ctx)
+        if opened is None:
+            return 0
+        ctx = opened
         if update_at_start(ctx):
             return 0
         detect_outage(ctx)

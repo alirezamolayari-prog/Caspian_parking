@@ -53,6 +53,10 @@ Name: "desktopicon"; Description: "{cm:DesktopIcon}"
 Name: "autostart"; Description: "{cm:AutoStart}"
 Name: "service"; Description: "{cm:ServerService}"; Flags: unchecked
 
+[Dirs]
+; the first-run wizard writes the data root location here (as a normal user)
+Name: "{commonappdata}\{#AppFolder}"; Permissions: users-modify; Check: IsAdminInstallMode
+
 [Files]
 Source: "{#Root}\dist\parking\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
