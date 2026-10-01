@@ -16,6 +16,7 @@ SUBFOLDERS: tuple[str, ...] = (
     "templates",
     "ads",
     "ads/slideshow",
+    "anpr",
     "photos",
     "backups",
     "reports",

@@ -48,6 +48,23 @@ class DeviceConfig:
 
 
 @dataclass
+class CameraConfig:
+    """One lane camera of this gate (SPEC §6 PlateSource)."""
+
+    lane: str = "entry"  # entry | exit
+    name: str = ""
+    kind: str = "off"  # off | simulator | rtsp | smart
+    url: str = ""  # RTSP / ONVIF stream URL (password kept in the URL is never logged)
+    port: int = 0  # smart camera HTTP push listener port
+    engine: str = "none"  # none | simulator | plugin:<file.py>:<Class>
+    min_confidence: int = 80  # percent
+
+    @property
+    def enabled(self) -> bool:
+        return self.kind != "off"
+
+
+@dataclass
 class MachineConfig:
     node_id: str = field(default_factory=uuid7)
     node_name: str = field(default_factory=socket.gethostname)
@@ -61,6 +78,10 @@ class MachineConfig:
     first_run_done: bool = False
     backup_destinations: list[str] = field(default_factory=list)
     photos_folder: str = ""  # empty = <data root>\photos
+    cameras: list[CameraConfig] = field(default_factory=list)
+
+    def camera_for(self, lane: str) -> CameraConfig | None:
+        return next((c for c in self.cameras if c.lane == lane and c.enabled), None)
 
     def to_json(self) -> dict[str, Any]:
         data = asdict(self)
@@ -73,10 +94,15 @@ class MachineConfig:
         server = ServerConfig(**{k: v for k, v in data.get("server", {}).items() if k in server_fields})
         device_fields = DeviceConfig.__dataclass_fields__
         devices = DeviceConfig(**{k: v for k, v in data.get("devices", {}).items() if k in device_fields})
-        known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k not in ("server", "devices")}
+        camera_fields = CameraConfig.__dataclass_fields__
+        cameras = [
+            CameraConfig(**{k: v for k, v in item.items() if k in camera_fields}) for item in data.get("cameras", [])
+        ]
+        nested = ("server", "devices", "cameras")
+        known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k not in nested}
         if "role" in known:
             known["role"] = Role(known["role"])
-        return cls(server=server, devices=devices, **known)
+        return cls(server=server, devices=devices, cameras=cameras, **known)
 
 
 def load_machine_config(config_dir: Path) -> MachineConfig:

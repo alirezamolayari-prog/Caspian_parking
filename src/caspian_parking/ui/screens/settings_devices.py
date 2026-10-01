@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from caspian_parking.config.machine import CameraConfig
 from caspian_parking.core.barcode import BarcodeError, decode_payload, encode_payload, looks_like_payload
 from caspian_parking.core.plate import parse_plate
 from caspian_parking.core.receipt import ReceiptAd, ReceiptContent
@@ -37,6 +38,7 @@ from caspian_parking.ui.widgets.feedback import show_toast
 
 PRINTER_BACKENDS = ("simulator", "windows", "escpos")
 SCANNER_MODES = ("wedge", "serial", "off")
+CAMERA_KINDS = ("off", "simulator", "rtsp", "smart")
 LABEL_KEYS = ("vehicle_type", "entry_date", "entry_time", "ticket_no", "duplicate")
 
 
@@ -133,11 +135,81 @@ class HardwareTab(QWidget):
         self.scanner = WedgeScanner(parent=self)
         self.scanner.scanned.connect(self.show_scan)
 
+        layout.addWidget(self._cameras_card())
+
         save_row = QHBoxLayout()
         save_row.addStretch(1)
         save_row.addWidget(Button(tr("common.save"), "check", variant="primary", on_click=self.save))
         layout.addLayout(save_row)
         layout.addStretch(1)
+
+    def _cameras_card(self) -> Card:
+        card = Card(tr("hardware.cameras"))
+        card.add(label(tr("hardware.cameras_hint"), "muted", wrap=True))
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(Space.M)
+        headers = (
+            "hardware.camera_lane",
+            "hardware.camera_kind",
+            "hardware.camera_name",
+            "hardware.camera_url",
+            "hardware.camera_port",
+            "hardware.camera_engine",
+            "hardware.camera_threshold",
+        )
+        for column, key in enumerate(headers):
+            grid.addWidget(label(tr(key), "caption"), 0, column)
+        self.camera_rows: dict[str, dict[str, QWidget]] = {}
+        for row, lane in enumerate(("entry", "exit"), start=1):
+            current = next((c for c in self.ctx.config.cameras if c.lane == lane), CameraConfig(lane=lane))
+            kind = QComboBox()
+            for value in CAMERA_KINDS:
+                kind.addItem(tr(f"hardware.camera_kind_{value}"), value)
+            kind.setCurrentIndex(max(0, kind.findData(current.kind)))
+            name = TextField(tr(f"camera.lane_{lane}"))
+            name.setText(current.name)
+            url = TextField("rtsp://…", persian_digits=False)
+            url.setText(current.url)
+            port = QSpinBox()
+            port.setRange(0, 65535)
+            port.setValue(current.port)
+            engine = TextField("none", persian_digits=False)
+            engine.setText(current.engine)
+            threshold = QSpinBox()
+            threshold.setRange(1, 100)
+            threshold.setSuffix("٪")
+            threshold.setValue(current.min_confidence)
+            widgets: dict[str, QWidget] = {
+                "kind": kind,
+                "name": name,
+                "url": url,
+                "port": port,
+                "engine": engine,
+                "threshold": threshold,
+            }
+            grid.addWidget(label(tr(f"camera.lane_{lane}")), row, 0)
+            for column, widget in enumerate(widgets.values(), start=1):
+                grid.addWidget(widget, row, column)
+            grid.setColumnStretch(4, 1)
+            self.camera_rows[lane] = widgets
+        card.body().addLayout(grid)
+        return card
+
+    def camera_configs(self) -> list[CameraConfig]:
+        configs = []
+        for lane, widgets in self.camera_rows.items():
+            configs.append(
+                CameraConfig(
+                    lane=lane,
+                    name=widgets["name"].value(),  # type: ignore[attr-defined]
+                    kind=widgets["kind"].currentData(),  # type: ignore[attr-defined]
+                    url=widgets["url"].text().strip(),  # type: ignore[attr-defined]
+                    port=widgets["port"].value(),  # type: ignore[attr-defined]
+                    engine=widgets["engine"].text().strip() or "none",  # type: ignore[attr-defined]
+                    min_confidence=widgets["threshold"].value(),  # type: ignore[attr-defined]
+                )
+            )
+        return configs
 
     def showEvent(self, event: object) -> None:
         self.scanner.install()
@@ -166,6 +238,7 @@ class HardwareTab(QWidget):
         devices.scanner_mode = self.scanner_mode.currentData()
         devices.scanner_port = self.scanner_port.currentText().strip()
         self.ctx.config.gate_code = self.gate_code.value()
+        self.ctx.config.cameras = self.camera_configs()
         self.ctx.save_config()
         show_toast(self, tr("common.saved"))
 

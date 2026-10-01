@@ -236,6 +236,7 @@ class Size:
     SLIDESHOW_W = 960  # windowed ad slideshow when there is no second monitor
     SLIDESHOW_H = 540
     TEMPLATE_PREVIEW = 300  # receipt template / coupon preview width
+    CAMERA_PREVIEW_H = 170  # live camera preview in a lane tile
 
 
 class Motion:

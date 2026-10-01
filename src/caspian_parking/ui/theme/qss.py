@@ -103,6 +103,7 @@ QFrame#Toast[kind="warning"] { border-color: $warning_text; }
 QWidget#Alarm { background: $alarm_bg; }
 QWidget#Alarm QLabel { color: $alarm_text; }
 QWidget#Slideshow { background: $bg; }
+QLabel#CameraPreview { background: $surface_sunken; color: $text_muted; border-radius: ${r_input}px; }
 QWidget#Slideshow QLabel { color: $text_muted; font-size: ${title}px; }
 
 /* ---- inputs ---- */

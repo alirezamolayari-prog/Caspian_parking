@@ -117,3 +117,17 @@ Built:
 How to run/test: `scripts/check.ps1` (≈ 595 tests). Receipt images for review: `tests/artifacts/receipt_coupon*.png`.
 
 Known gaps: LED sign text rotation arrives with the LED driver (Phase 10).
+
+## Phase 8 — Cameras & ANPR ✅
+Built:
+- Plate sources behind one interface (`devices/plate_source.py`): manual (no camera), simulator (several frames with configurable misreads), RTSP/ONVIF via OpenCV on a worker thread (live preview ~5 fps, automatic reconnect with back‑off, credentials never logged), smart ANPR camera HTTP push listener (JSON, one or several frames, base64 photo).
+- ANPR engines (`devices/anpr.py`): `none`, `simulator`, and plug‑ins loaded from `<data root>\anpr` (`plugin:file.py:Class`). No model is bundled — see D‑076 and `docs/ANPR_PLUGINS.md`.
+- Multi‑frame voting per character with confidence threshold and vehicle‑type vote (`core/anpr.py`, property‑tested).
+- Camera reads (migration `0007_camera`, append‑only): every pass with confidence, vehicle type and photo (Jalali folder, SPEC file name); link to the entry / exit session; corrections keep the camera read and the operator's value; unidentified passes (plate unreadable) listed for 7 days with photo, operator fills the plate later.
+- Gate screen: lane tiles with live preview, last read plate, vehicle type and confidence chips, online light; an entry read fills the plate field and vehicle type (the operator confirms with one key); an exit read opens the matching vehicle; *Unidentified passes* tab; camera offline → alert bar.
+- Settings → Devices: camera per lane (type, name, RTSP URL, push port, engine, minimum confidence).
+- Report 17 camera accuracy (reads, matched, corrected, unreadable, accuracy %, list of corrections). Report 16 (receipts without plate) already existed.
+
+How to run/test: `scripts/check.ps1`. Try it without hardware: Settings → Devices → Cameras → type *Simulator* for both lanes, restart the app.
+
+Known gaps: plate reading from plain RTSP cameras needs a licensed engine plug‑in (none bundled); after‑hours report 18 comes with watch mode (Phase 9).

@@ -124,10 +124,10 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** rotation fairness, print counters, no‑ad layout, coupon single‑use/expiry/night fine, watcher add/remove/fallback, raffle logged & reproducible audit.
 - **Deps:** 3, 4, 5.
 
-## ⬜ Phase 8 — Cameras & ANPR
-- [ ] `PlateSource` implementations: Manual, Simulator (images/plates from folder with configurable misreads), RTSP/ONVIF (OpenCV thread + auto‑reconnect), Smart camera HTTP push listener; `AnprEngine` plug‑in + ONNX Runtime loader (license check → DECISIONS).
-- [ ] Multi‑frame voting, vehicle‑type classification interface, confidence threshold, snapshots saved via photo service.
-- [ ] Lane tiles with live preview, unidentified passes list (fill plate later), corrections (camera read + corrected value), reports 16/17, camera offline alerts.
+## ✅ Phase 8 — Cameras & ANPR
+- [x] `PlateSource` implementations: Manual, Simulator (images/plates from folder with configurable misreads), RTSP/ONVIF (OpenCV thread + auto‑reconnect), Smart camera HTTP push listener; `AnprEngine` plug‑in + ONNX Runtime loader (license check → DECISIONS).
+- [x] Multi‑frame voting, vehicle‑type classification interface, confidence threshold, snapshots saved via photo service.
+- [x] Lane tiles with live preview, unidentified passes list (fill plate later), corrections (camera read + corrected value), reports 16/17, camera offline alerts.
 - **Tests:** voting logic, simulator end‑to‑end entry with photo, correction storage, accuracy report, reconnect behaviour (fake stream).
 - **Deps:** 3, 6.
 

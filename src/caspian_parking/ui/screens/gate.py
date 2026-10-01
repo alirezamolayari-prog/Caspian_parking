@@ -6,8 +6,10 @@ keyboard-wedge scanner can scan a ticket at any time (it goes straight to the ex
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
+import time
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, QTimer
@@ -30,11 +32,13 @@ from PySide6.QtWidgets import (
 
 from caspian_parking.core.coupons import is_coupon_code
 from caspian_parking.core.permissions import Permission
-from caspian_parking.core.plate import Plate, PlateKind
+from caspian_parking.core.plate import Plate, PlateKind, parse_plate
 from caspian_parking.core.receipt import ReceiptAd
 from caspian_parking.core.subscriptions import EntryStatus
 from caspian_parking.core.tariff import PassThroughType, VehicleType, VisitKind
-from caspian_parking.data.models import ActiveSession, Ad, EntryEvent
+from caspian_parking.data.models import ActiveSession, Ad, CameraRead, EntryEvent
+from caspian_parking.devices.anpr import AnprError, load_engine
+from caspian_parking.devices.plate_source import PlatePass, PlateSource, create_plate_source
 from caspian_parking.devices.printer import PrinterError
 from caspian_parking.devices.scanner import ScannerSource, SerialScanner, WedgeScanner
 from caspian_parking.i18n import tr
@@ -42,6 +46,7 @@ from caspian_parking.i18n.format import fa_digits, fa_duration, fa_ltr, fa_money
 from caspian_parking.services import templates
 from caspian_parking.services.ads import AdService
 from caspian_parking.services.blocklist import BlockMatch
+from caspian_parking.services.camera import CameraError, CameraService
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.gate_service import (
     AlreadyInside,
@@ -69,6 +74,7 @@ from caspian_parking.ui.shell.main_window import add_shortcut_row
 from caspian_parking.ui.theme.tokens import Size, Space
 from caspian_parking.ui.widgets.alerts import AlarmOverlay
 from caspian_parking.ui.widgets.basics import Button, Card, TextField, chip, label, repolish, set_chip
+from caspian_parking.ui.widgets.camera_tile import CameraTile
 from caspian_parking.ui.widgets.feedback import Alert, EmptyState, StatusLight, confirm, show_toast
 from caspian_parking.ui.widgets.inputs import MoneyField
 from caspian_parking.ui.widgets.plate import PlateWidget
@@ -78,6 +84,8 @@ from caspian_parking.ui.widgets.table import Column, DataTable, LazyTableModel
 log = logging.getLogger(__name__)
 
 REFRESH_MS = 30_000
+LANES = ("entry", "exit")
+READ_LINK_SECONDS = 120  # a camera read older than this is not linked to the vehicle being registered
 SIDE_PANEL_MIN_WIDTH = 380
 VEHICLE_CHOICES = (VehicleType.SEDAN, VehicleType.VAN, VehicleType.TRUCK, VehicleType.OTHER)
 
@@ -113,6 +121,11 @@ class GateScreen(Screen):
         self.pending_debts: list[OpenDebt] = []
         self.vehicle = VehicleType.SEDAN
         self.scanner = self._create_scanner()
+        self.cameras = CameraService(ctx)
+        self.sources: dict[str, PlateSource] = self._create_sources()
+        self.tiles: dict[str, CameraTile] = {}
+        self.pending_reads: dict[str, tuple[CameraRead, float]] = {}
+        self._sources_started = False
         self.subtitle_label.setVisible(True)
 
         top = QHBoxLayout()
@@ -140,9 +153,107 @@ class GateScreen(Screen):
             scanner.scanned.connect(self.on_scanned)
         return scanner
 
+    # ================================================================ cameras
+    def _create_sources(self) -> dict[str, PlateSource]:
+        sources: dict[str, PlateSource] = {}
+        for lane in LANES:
+            config = self.ctx.config.camera_for(lane)
+            if config is None:
+                continue
+            engine = None
+            if config.kind == "rtsp":
+                try:
+                    engine = load_engine(config.engine, self.ctx.data_root.sub("anpr"))
+                except AnprError as exc:
+                    log.warning("ANPR engine for %s lane: %s", lane, exc)
+            source = create_plate_source(config, self.ctx.clock, engine)
+            source.setParent(self)
+            source.passed.connect(self.on_plate_pass)
+            source.online_changed.connect(functools.partial(self._camera_online, lane))
+            sources[lane] = source
+        return sources
+
+    def _camera_tile(self, lane: str, layout: QVBoxLayout) -> None:
+        source = self.sources.get(lane)
+        if source is None:
+            return
+        tile = CameraTile(tr("camera.tile_title", name=source.name))
+        source.frame.connect(tile.set_frame)
+        tile.set_online(source.online)
+        self.tiles[lane] = tile
+        layout.addWidget(tile)
+
+    def start_cameras(self) -> None:
+        if self._sources_started:
+            return
+        self._sources_started = True
+        for source in self.sources.values():
+            source.start()
+
+    def stop_cameras(self) -> None:
+        for source in self.sources.values():
+            source.stop()
+        self._sources_started = False
+
+    def _camera_online(self, lane: str, online: bool) -> None:
+        if lane in self.tiles:
+            self.tiles[lane].set_online(online)
+        key = f"camera_{lane}"
+        if online:
+            self._clear_alert(key)
+        else:
+            self._alert(key, tr("camera.offline", name=self.sources[lane].name), "warning")
+
+    def on_plate_pass(self, item: PlatePass) -> CameraRead | None:
+        """A camera saw a vehicle: store it, show it, and prepare the lane (the operator still confirms)."""
+        try:
+            read = self.cameras.record_pass(item)
+        except Exception:  # storage problems must not break the lane
+            log.exception("cannot store camera read")
+            return None
+        if item.lane in self.tiles:
+            self.tiles[item.lane].show_pass(item)
+        self.pending_reads[item.lane] = (read, time.monotonic())
+        plate = item.result.plate
+        if plate is None:
+            self.refresh_unidentified()
+            show_toast(self, tr("camera.unreadable_toast"), "info")
+            return read
+        if item.lane == "entry":
+            moto = plate.kind is PlateKind.MOTORCYCLE
+            if moto != (self.plate_input.mode() is PlateKind.MOTORCYCLE):
+                self.toggle_motorcycle()
+            self.plate_input.set_text(plate.text)
+            if item.result.vehicle_type and not moto:
+                with contextlib.suppress(ValueError):
+                    self.set_vehicle(VehicleType(item.result.vehicle_type))
+            self.print_button.setFocus()
+        elif self.quote is None:
+            matches = [s for s in self.gate.search_inside(plate.key, 0, 5) if s.plate_key == plate.key]
+            if matches:
+                self.load_exit(matches[0])
+        return read
+
+    def _take_read(self, lane: str) -> CameraRead | None:
+        """The lane's camera read if it is recent enough to belong to the vehicle being handled."""
+        pending = self.pending_reads.pop(lane, None)
+        if pending is None or time.monotonic() - pending[1] > READ_LINK_SECONDS:
+            return None
+        return pending[0]
+
+    def _link_read(self, lane: str, session_id: str, plate: Plate | None, vehicle: str | None) -> None:
+        read = self._take_read(lane)
+        if read is None:
+            return
+        try:
+            self.cameras.link(read.id, session_id, plate, vehicle)
+        except CameraError:
+            log.warning("camera read %s vanished before linking", read.id)
+
     # ================================================================ entry lane
     def _entry_card(self) -> QWidget:
         card = Card(tr("gate.entry_lane"), raised=True)
+        self._camera_tile("entry", card.body())
         self.entry_preview = PlateWidget(None, height=84)
         preview_row = QHBoxLayout()
         preview_row.addStretch(1)
@@ -341,6 +452,7 @@ class GateScreen(Screen):
         except GateError as exc:
             show_toast(self, tr(str(exc)), "warning")
             return None
+        self._link_read("entry", result.session.id, plate, vehicle.value)
         if result.needs_receipt or self._print_for_covered():
             ad = self._rotating_ad("entry")
             content = entry_content(result.session, result.payload, ad=self._receipt_ad(ad), training=self.ctx.training)
@@ -441,6 +553,7 @@ class GateScreen(Screen):
     # ================================================================ exit lane
     def _exit_card(self) -> QWidget:
         card = Card(tr("gate.exit_lane"), raised=True)
+        self._camera_tile("exit", card.body())
         search = QHBoxLayout()
         self.ticket_field = TextField(tr("gate.ticket_placeholder"))
         self.ticket_field.setProperty("scale", "lg")
@@ -646,6 +759,7 @@ class GateScreen(Screen):
         except GateError as exc:
             show_toast(self, tr(str(exc)), "error")
             return False
+        self._link_read("exit", quote.session.id, plate_of(quote.session), None)
         if self.exit_receipt.isChecked():
             content = exit_content(
                 quote.session,
@@ -679,6 +793,7 @@ class GateScreen(Screen):
         except GateError as exc:
             show_toast(self, tr(str(exc)), "error")
             return False
+        self._link_read("exit", quote.session.id, plate_of(quote.session), None)
         show_toast(self, tr("gate.flee_done"), "warning")
         self.reset_exit()
         self.refresh_lists()
@@ -756,12 +871,72 @@ class GateScreen(Screen):
         self.today_table = DataTable(self.today_model)
         self.today_table.setItemDelegateForColumn(0, PlateDelegate(plate_of, self.today_table))
         self.side_tabs.addTab(self.today_table, tr("gate.today"))
-        self.side_tabs.addTab(
-            EmptyState("camera-off", tr("gate.unidentified_empty"), tr("gate.unidentified_hint")),
-            tr("gate.unidentified"),
-        )
+        self.side_tabs.addTab(self._unidentified_page(), tr("gate.unidentified"))
         card.add(self.side_tabs, 1)
         return card
+
+    def _unidentified_page(self) -> QWidget:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, Space.S, 0, 0)
+        self._unidentified: list[CameraRead] = []
+        self.unidentified_model = LazyTableModel(
+            [
+                Column(tr("gate.col_time"), lambda r: fa_time(r.created_at_utc), width=70),
+                Column(tr("camera.col_lane"), lambda r: tr(f"camera.lane_{r.lane}"), width=70),
+                Column(tr("camera.col_vehicle"), lambda r: tr(f"vehicle.{r.vehicle_type}") if r.vehicle_type else "—"),
+            ],
+            lambda o, lim: self._unidentified[o : o + lim],
+        )
+        self.unidentified_table = DataTable(self.unidentified_model)
+        self.unidentified_table.clicked.connect(lambda _i: self._show_unidentified_photo())
+        layout.addWidget(self.unidentified_table, 1)
+        self.unidentified_photo = QLabel(alignment=Qt.AlignmentFlag.AlignCenter)
+        self.unidentified_photo.setObjectName("CameraPreview")
+        self.unidentified_photo.setFixedHeight(Size.CAMERA_PREVIEW_H)
+        self.unidentified_photo.setVisible(False)
+        layout.addWidget(self.unidentified_photo)
+        fill = QHBoxLayout()
+        self.unidentified_plate = TextField(tr("camera.fill_placeholder"))
+        fill.addWidget(self.unidentified_plate, 1)
+        fill.addWidget(Button(tr("camera.fill"), "check", on_click=self.fill_unidentified))
+        layout.addLayout(fill)
+        self.unidentified_empty = label(tr("gate.unidentified_empty"), "muted", wrap=True)
+        layout.addWidget(self.unidentified_empty)
+        self.refresh_unidentified()
+        return page
+
+    def refresh_unidentified(self) -> None:
+        self._unidentified = self.cameras.unidentified()
+        self.unidentified_model.reset()
+        self.unidentified_empty.setVisible(not self._unidentified)
+
+    def _show_unidentified_photo(self) -> None:
+        read = self.unidentified_table.selected_object()
+        path = self.cameras.photo_path(read) if read is not None else None
+        pixmap = QPixmap(path) if path else QPixmap()
+        self.unidentified_photo.setVisible(not pixmap.isNull())
+        if not pixmap.isNull():
+            self.unidentified_photo.setPixmap(
+                pixmap.scaledToHeight(Size.CAMERA_PREVIEW_H, Qt.TransformationMode.SmoothTransformation)
+            )
+
+    def fill_unidentified(self) -> bool:
+        read = self.unidentified_table.selected_object()
+        if read is None:
+            show_toast(self, tr("camera.select_pass"), "info")
+            return False
+        try:
+            plate = parse_plate(self.unidentified_plate.value(), allow_free=False)
+        except ValueError:
+            show_toast(self, tr("gate.plate_incomplete"), "warning")
+            return False
+        self.cameras.fill_unidentified(read.id, plate)
+        self.unidentified_plate.clear()
+        self.unidentified_photo.setVisible(False)
+        self.refresh_unidentified()
+        show_toast(self, tr("camera.filled"))
+        return True
 
     def _inside_columns(self) -> list[Column]:
         return [
@@ -906,6 +1081,7 @@ class GateScreen(Screen):
             self.scanner.install()
         elif isinstance(self.scanner, SerialScanner):
             self.scanner.start()
+        self.start_cameras()
         flagged = self.gate.auto_flag_overnight()
         if flagged:
             show_toast(self, tr("gate.overnight_flagged", n=fa_number(len(flagged))), "warning")
@@ -920,6 +1096,7 @@ class GateScreen(Screen):
     def closeEvent(self, event: object) -> None:
         if isinstance(self.scanner, SerialScanner):
             self.scanner.stop()
+        self.stop_cameras()
         super().closeEvent(event)  # type: ignore[arg-type]
 
     def print_night_list(self) -> bool:

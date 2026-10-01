@@ -20,6 +20,8 @@ Every dependency must allow closed‑source commercial distribution. Shipped = b
 | APScheduler | 3.11.3 | MIT | yes | |
 | pywin32 | 312 | PSF | yes | |
 | pyserial | 3.5 | BSD‑3 | yes | |
+| opencv‑python‑headless | 5.0.0.93 | Apache‑2.0 (bundled FFmpeg: LGPL‑2.1, shipped as separate DLLs) | yes | RTSP/ONVIF cameras; headless build (no Qt/GTK GUI inside) |
+| NumPy | 2.5.3 | BSD‑3 | yes | OpenCV frames |
 | typing‑extensions | 4.16.0 | PSF | yes | |
 | Vazirmatn font (5 weights) | 33.003 | SIL OFL 1.1 | yes | `resources/fonts/OFL.txt`; bundled unmodified |
 | Lucide icons (SVG subset) | 1.48.0 | ISC | yes | `resources/icons/LICENSE.txt`; recolored at runtime |
