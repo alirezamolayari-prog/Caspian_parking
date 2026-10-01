@@ -79,6 +79,7 @@ class ReviewScreen(Screen):
         actions.addWidget(Button(tr("review.resolve"), "check", variant="primary", on_click=self.resolve))
         detail.body().addLayout(actions)
         row.addWidget(detail, 3)
+        self.show_item(None)
         self.reload()
 
     def reload(self) -> None:

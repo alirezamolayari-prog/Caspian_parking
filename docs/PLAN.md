@@ -142,10 +142,10 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** simulators drive each flow (paid → barrier opens, RFID subscriber entry, POS success/failure/timeout, LED rotation).
 - **Deps:** 3, 4, 7, 8.
 
-## ⬜ Phase 11 — Packaging, wizard, performance, docs
-- [ ] PyInstaller onedir spec (fonts, icons, resources, Qt plugins), Inno Setup script (Persian + English, desktop shortcut, start‑with‑Windows, ODBC 18 + VC++ checks, uninstall keeps data root), `build.ps1`.
-- [ ] First‑run wizard (role, gate, server + SQL test, data root, printer, scanner, cameras, admin, theme); auto‑update install path.
-- [ ] Full 1M‑row performance run vs SPEC §2.4 (results in PROGRESS); final QA checklist across all screens in both themes; `docs/USER_MANUAL_FA.md`, `docs/SITE_SETUP.md`; license review.
+## ✅ Phase 11 — Packaging, wizard, performance, docs
+- [x] PyInstaller onedir spec (fonts, icons, resources, Qt plugins), Inno Setup script (Persian + English, desktop shortcut, start‑with‑Windows, ODBC 18 + VC++ checks, uninstall keeps data root), `build.ps1`.
+- [x] First‑run wizard (role, gate, server + SQL test, data root, printer, scanner, cameras, admin, theme); auto‑update install path.
+- [x] Full 1M‑row performance run vs SPEC §2.4 (results in PROGRESS); final QA checklist across all screens in both themes; `docs/USER_MANUAL_FA.md`, `docs/SITE_SETUP.md`; license review.
 - **Acceptance:** installer builds; installed app launches & passes smoke; tag `phase-11`.
 
 ---

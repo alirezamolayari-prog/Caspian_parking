@@ -51,6 +51,8 @@ class CameraTile(QWidget):
         if not online:
             self.preview.setPixmap(QPixmap())
             self.preview.setText(tr("camera.offline_short"))
+        elif self.preview.pixmap().isNull():
+            self.preview.setText(tr("camera.no_signal"))
 
     def set_frame(self, image: QImage) -> None:
         pixmap = QPixmap.fromImage(image).scaled(

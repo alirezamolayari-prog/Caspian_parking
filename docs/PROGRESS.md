@@ -160,3 +160,25 @@ Built (every device behind an interface, with a simulator; each can be switched 
 How to run/test: `scripts/check.ps1`. Without hardware: set barrier, card reader, terminal and LED to *Simulator*.
 
 Known gaps: Iranian PSP terminal protocols (Behpardakht, Sepehr, Pardakht Novin) and vendor‑specific LED protocols need their documentation — the interfaces are ready (`PaymentTerminal`, `LedSign`).
+
+## Phase 11 — Packaging, wizard, performance, docs ✅
+Built:
+- `scripts\build.ps1`: quality gate → icon + version resource → PyInstaller onedir (`dist\parking\parking.exe`) → smoke test of the built app → Inno Setup installer (`dist\installer\<AppFolder>-Setup-<version>.exe` + `version.json` for the update share) → **install test**: silent per‑user install, smoke test of the installed app, silent uninstall.
+- Installer (Farsi + English): Program Files, shortcuts, start with Windows, optional server service (install/start; stop/remove on uninstall), ODBC 18 / VC++ checks, third‑party notices; uninstall keeps the data folder; silent mode for auto‑update restarts the app.
+- First‑run wizard: theme, data folder, role, gate number and name, central server with connection test (gates join at the end), printer, scanner, cameras, first administrator.
+- QA: every screen in both themes rendered with realistic data (screenshots in `tests/artifacts/screens/`), no missing Persian strings; fixed on the way: Persian names for all tables in the audit log, camera tile text after reconnect, review screen initial state, subscriber profile width, ad dates column.
+- Performance run on 1,000,000 visits / 2,000 subscribers (this PC, `tests/artifacts/perf.json`); two slow queries found and fixed (occupancy, after‑hours report):
+
+| Target (SPEC §2.4) | Limit | Measured |
+|---|---|---|
+| Plate search | < 200 ms | 3 ms |
+| Exit price calculation | < 100 ms | 3 ms |
+| Entry receipt (register + render) | < 1 s | 57 ms |
+| Main window ready | < 3 s | 0.81 s |
+| Slowest one‑month report (of 27) | < 5 s | 0.85 s (after‑hours) |
+
+- Docs: `docs/SITE_SETUP.md` (Persian site checklist and installation), `docs/USER_MANUAL_FA.md` (Persian user manual), licence review in `docs/THIRD_PARTY_LICENSES.md`, README.
+
+How to run/test: `scripts\check.ps1`; `scripts\perf.ps1`; `scripts\build.ps1` (builds and tests the installer).
+
+Known gaps (need the owner or the site): PSP card‑terminal protocols and vendor LED protocols (interfaces ready), a licensed ANPR engine for plain RTSP cameras, final check on SQL Server Express 2022 + ODBC Driver 18 on the site PCs, code signing of the installer (needs a certificate).

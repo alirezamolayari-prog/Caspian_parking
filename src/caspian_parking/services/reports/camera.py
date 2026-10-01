@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from caspian_parking.core.jalali import local_date
 from caspian_parking.data.models import CameraRead, PlateCorrection
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_datetime, fa_digits
@@ -79,7 +82,7 @@ def camera_accuracy(session: Session, params: ReportParams) -> ReportResult:
 def after_hours(session: Session, params: ReportParams) -> ReportResult:
     """Report 18: traffic outside working hours — watch-mode camera passes and receipts issued after hours."""
     from caspian_parking.data.models import EntryEvent
-    from caspian_parking.services.watch import is_working
+    from caspian_parking.services.tariff_service import load_calendar
 
     passes = []
     blocked = 0
@@ -102,14 +105,24 @@ def after_hours(session: Session, params: ReportParams) -> ReportResult:
                 tr("watch.blocked") if is_blocked else "",
             ]
         )
+    calendar = load_calendar(session)  # once: opening hours per local day, cached below
+    windows: dict[date, tuple[datetime, datetime] | None] = {}
+
+    def outside_hours(moment: datetime) -> bool:
+        day = local_date(moment)
+        if day not in windows:
+            windows[day] = calendar.opening_utc(day)
+        window = windows[day]
+        return window is None or not window[0] <= moment < window[1]
+
     receipts = [
-        [fa_datetime(e.entry_at_utc), tr("camera.lane_entry"), plate_cell(e.plate_key), e.ticket_no]
-        for e in session.scalars(
-            select(EntryEvent)
+        [fa_datetime(entry_at), tr("camera.lane_entry"), plate_cell(plate_key), ticket_no]
+        for entry_at, plate_key, ticket_no in session.execute(
+            select(EntryEvent.entry_at_utc, EntryEvent.plate_key, EntryEvent.ticket_no)
             .where(EntryEvent.entry_at_utc >= params.start, EntryEvent.entry_at_utc < params.end)
             .order_by(EntryEvent.entry_at_utc)
         )
-        if not is_working(session, e.entry_at_utc)
+        if outside_hours(entry_at)
     ]
     return ReportResult(
         tr("report.after_hours"),

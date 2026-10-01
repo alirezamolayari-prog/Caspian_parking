@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from caspian_parking.core.jalali import jalali_month_range_utc, jalali_of, to_local
@@ -24,14 +24,17 @@ def occupancy_samples(
 ) -> list[tuple[datetime, int]]:
     """Number of vehicles inside at every ``step`` in [start, end) (sweep over entries and exits)."""
     intervals: list[tuple[datetime, datetime]] = []
-    for entry, exit_ in session.execute(
-        select(Visit.entry_at_utc, Visit.exit_at_utc).where(
-            Visit.entry_at_utc < end,
-            or_(Visit.exit_at_utc.is_(None), Visit.exit_at_utc >= start),
-            Visit.status != "cancelled",
-        )
-    ):
-        intervals.append((entry, exit_ or end))
+    # "entered before the end and still inside at the start", split so that each part uses an index
+    # (one combined condition makes SQLite read every older visit — years of history)
+    live = Visit.status != "cancelled"
+    parts = (
+        (Visit.entry_at_utc >= start, Visit.entry_at_utc < end),  # entered during the period
+        (Visit.exit_at_utc >= start, Visit.entry_at_utc < start),  # entered before, left after the start
+        (Visit.exit_at_utc.is_(None), Visit.entry_at_utc < start),  # entered before, never closed
+    )
+    for conditions in parts:
+        for entry, exit_ in session.execute(select(Visit.entry_at_utc, Visit.exit_at_utc).where(*conditions, live)):
+            intervals.append((entry, exit_ or end))
     for (entry,) in session.execute(select(ActiveSession.entry_at_utc).where(ActiveSession.entry_at_utc < end)):
         intervals.append((entry, end))
     events: list[tuple[datetime, int]] = []

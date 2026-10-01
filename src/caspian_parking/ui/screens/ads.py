@@ -131,7 +131,11 @@ class AdsScreen(Screen):
             Column("", lambda _a: "", width=40),
             Column(tr("ads.col_shop"), lambda a: self._shop_name(a.shop_id), width=150),
             Column(tr("ads.col_package"), lambda a: tr(f"ads.package.{a.package}"), width=80),
-            Column(tr("ads.col_dates"), lambda a: f"{fa_date(a.start_date)} ← {fa_date(a.end_date)}", width=190),
+            Column(
+                tr("ads.col_dates"),
+                lambda a: tr("ads.dates", start=fa_date(a.start_date), end=fa_date(a.end_date)),
+                width=230,
+            ),
             Column(tr("ads.col_prints"), lambda a: fa_digits(counts.get(a.id, 0))),
         ]
 

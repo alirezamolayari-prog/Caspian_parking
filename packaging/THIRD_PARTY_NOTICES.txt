@@ -1,0 +1,21 @@
+Third-party components
+======================
+
+This application includes the following open-source components. Their licences allow use in this
+commercial product. The full list with versions is kept in docs/THIRD_PARTY_LICENSES.md of the source.
+
+Qt 6 / PySide6 / Shiboken6 — GNU LGPL v3
+  The Qt libraries are the separate DLL files in the _internal folder and can be replaced by the user.
+  Source code: https://download.qt.io/official_releases/qt/  and  https://code.qt.io/cgit/pyside/pyside-setup.git/
+
+FFmpeg (inside OpenCV's opencv_videoio_ffmpeg DLL) — GNU LGPL v2.1
+  Source code: https://ffmpeg.org/download.html  and  https://github.com/opencv/opencv-python
+
+OpenCV (Apache 2.0), NumPy (BSD), SQLAlchemy / Alembic / Mako (MIT), MarkupSafe (BSD), pyodbc (MIT),
+jdatetime (PSF), jalali-core (MIT), tzdata (Apache 2.0), tzlocal (MIT), openpyxl / et-xmlfile (MIT),
+python-docx (MIT), lxml (BSD), Pillow (HPND), APScheduler (MIT), pywin32 (PSF), pyserial (BSD),
+typing-extensions (PSF), CPython (PSF).
+
+Vazirmatn font — SIL Open Font License 1.1 (see resources/fonts/OFL.txt)
+Lucide icons — ISC licence (see resources/icons/LICENSE.txt)
+PyInstaller bootloader — GPL v2 with the bootloader exception (permits distribution of the built program)

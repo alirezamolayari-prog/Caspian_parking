@@ -33,3 +33,13 @@ Every dependency must allow closed‑source commercial distribution. Shipped = b
 | hypothesis / sortedcontainers | 6.168.3 / 2.4.0 | MPL‑2.0 / Apache‑2.0 | no | dev only |
 | ruff | 0.16.9 | MIT | no | dev only |
 | mypy (+ deps) | 2.3.1 | MIT | no | dev only |
+| PyInstaller (+ hooks‑contrib) | 6.22.3 / 2026.8 | GPL‑2.0 **with bootloader exception** / GPL‑2.0 + Apache‑2.0 | bootloader only | the exception explicitly allows distributing the built app under any licence; the PyInstaller code itself is not shipped |
+| altgraph / pefile / pywin32‑ctypes | 0.17.5 / 2024.8.26 / 0.2.3 | MIT / MIT / BSD‑3 | no | build only |
+| Inno Setup | 6.7.3 | Inno Setup License (free, commercial use allowed) | setup stub only | builds the installer |
+| Inno Setup Farsi translation (`packaging/Farsi.isl`) | 6.5.0+ | same terms as Inno Setup (user‑contributed translation, credits kept in the file) | in the installer | Persian installer wizard |
+
+## Licence review (Phase 11, 2026‑10‑01)
+- Every component shipped in the installer allows closed‑source commercial distribution.
+- LGPL parts (Qt via PySide6, FFmpeg inside OpenCV) stay separate, replaceable DLLs in the onedir build (`_internal\`); the installer documentation states where the Qt and FFmpeg sources can be obtained.
+- No ANPR model is shipped (see DECISIONS D‑076); a licensed engine is added on site as a plug‑in.
+- GPL code (PyInstaller) is used only as a build tool; its bootloader exception covers the bundled bootloader.

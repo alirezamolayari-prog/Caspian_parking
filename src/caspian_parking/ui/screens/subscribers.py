@@ -7,6 +7,7 @@ import functools
 import os
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -146,12 +147,13 @@ class SubscriberProfile(QWidget):
         layout.addWidget(label(tr("subs.plates"), "title"))
         self.plates_box = QVBoxLayout()
         layout.addLayout(self.plates_box)
-        add_row = QHBoxLayout()
         self.plate_input = PlateInput()
-        add_row.addWidget(self.plate_input, 1)
+        layout.addWidget(self.plate_input)
+        add_row = QHBoxLayout()  # on its own line so the profile never needs a horizontal scroll bar
         self.moto = QCheckBox(tr("vehicle.motorcycle"))
         self.moto.toggled.connect(lambda on: self.plate_input.set_mode(PlateKind.MOTORCYCLE if on else PlateKind.CAR))
         add_row.addWidget(self.moto)
+        add_row.addStretch(1)
         add_row.addWidget(Button(tr("subs.add_plate"), "plus", on_click=self.add_plate))
         layout.addLayout(add_row)
         self.cards = CardsBox(self.ctx)
@@ -393,6 +395,7 @@ class SubscribersScreen(Screen):
         profile_card = Card()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.profile = SubscriberProfile(self)
         scroll.setWidget(self.profile)
         profile_card.add(scroll, 1)

@@ -59,6 +59,7 @@ Name: "{commonappdata}\{#AppFolder}"; Permissions: users-modify; Check: IsAdminI
 
 [Files]
 Source: "{#Root}\dist\parking\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#Root}\packaging\THIRD_PARTY_NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\parking.exe"
