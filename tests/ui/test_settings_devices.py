@@ -17,8 +17,9 @@ def _settings(qtbot, ctx):
 
 def test_admin_sees_receipt_and_hardware_tabs(qtbot, admin_ctx):
     screen = _settings(qtbot, admin_ctx)
-    assert screen.tabs.count() == 4
+    assert screen.tabs.count() == 5  # appearance, site, receipt, hardware, server & sync
     assert hasattr(screen, "hardware_tab")
+    assert hasattr(screen, "server_tab")
 
 
 def test_operator_sees_only_appearance(qtbot, operator_ctx):

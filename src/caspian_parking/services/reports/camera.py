@@ -74,3 +74,63 @@ def camera_accuracy(session: Session, params: ReportParams) -> ReportResult:
         subtitle=params.label,
         widths=[18, 12, 18, 14, 14, 12, 12],
     )
+
+
+def after_hours(session: Session, params: ReportParams) -> ReportResult:
+    """Report 18: traffic outside working hours — watch-mode camera passes and receipts issued after hours."""
+    from caspian_parking.data.models import EntryEvent
+    from caspian_parking.services.watch import is_working
+
+    passes = []
+    blocked = 0
+    for read in session.scalars(
+        select(CameraRead)
+        .where(
+            CameraRead.after_hours.is_(True),
+            CameraRead.created_at_utc >= params.start,
+            CameraRead.created_at_utc < params.end,
+        )
+        .order_by(CameraRead.created_at_utc)
+    ):
+        is_blocked = bool(read.plate_key and _blocked(session, read.plate_key))
+        blocked += is_blocked
+        passes.append(
+            [
+                fa_datetime(read.created_at_utc),
+                tr(f"camera.lane_{read.lane}"),
+                plate_cell(read.plate_key) if read.plate_key else tr("camera.unreadable"),
+                tr("watch.blocked") if is_blocked else "",
+            ]
+        )
+    receipts = [
+        [fa_datetime(e.entry_at_utc), tr("camera.lane_entry"), plate_cell(e.plate_key), e.ticket_no]
+        for e in session.scalars(
+            select(EntryEvent)
+            .where(EntryEvent.entry_at_utc >= params.start, EntryEvent.entry_at_utc < params.end)
+            .order_by(EntryEvent.entry_at_utc)
+        )
+        if not is_working(session, e.entry_at_utc)
+    ]
+    return ReportResult(
+        tr("report.after_hours"),
+        [tr("review.col_when"), tr("camera.col_lane"), tr("rep.col_plate"), tr("watch.col_note")],
+        [Section(tr("watch.section_passes"), passes), Section(tr("watch.section_receipts"), receipts)],
+        kpis=[
+            (tr("watch.kpi_passes"), fa_digits(len(passes))),
+            (tr("watch.blocked"), fa_digits(blocked)),
+        ],
+        totals={"passes": len(passes), "blocked": blocked, "receipts": len(receipts)},
+        subtitle=params.label,
+        widths=[22, 12, 22, 20],
+    )
+
+
+def _blocked(session: Session, plate_key: str) -> bool:
+    """Blocked directly or through the person who owns the plate (same rule as the gate)."""
+    from caspian_parking.data.models import Block, PersonPlate
+
+    owners = select(PersonPlate.person_id).where(PersonPlate.plate_key == plate_key, PersonPlate.is_active.is_(True))
+    stmt = select(Block.id).where(
+        Block.is_active.is_(True), (Block.plate_key == plate_key) | Block.person_id.in_(owners)
+    )
+    return session.scalar(stmt.limit(1)) is not None

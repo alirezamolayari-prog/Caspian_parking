@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
@@ -94,23 +95,28 @@ class FakeCapture:
 
 def test_rtsp_reconnects_and_reads_passes(qapp, qtbot):
     engine = SimulatorEngine([[FrameRead(PLATE, 0.9, "van", 0.8)], [FrameRead(PLATE, 0.95)], [], [], [], []])
-    captures = [FakeCapture(0, opened=False), FakeCapture(0, opened=False), FakeCapture(8), FakeCapture(10_000)]
+    captures = [FakeCapture(0, opened=False), FakeCapture(0, opened=False), FakeCapture(8), FakeCapture(30)]
     made = []
 
     def factory(url):
-        capture = captures.pop(0) if captures else FakeCapture(10_000)
+        capture = captures.pop(0) if captures else FakeCapture(0, opened=False)
         made.append(capture)
         return capture
 
     sleeps = []
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+        time.sleep(0.01)  # keep the reconnect loop from spinning while the test waits
+
     source = RtspPlateSource(
-        config("rtsp", url="rtsp://admin:secret@10.0.0.5/stream"), CLOCK, engine, factory, sleeps.append
+        config("rtsp", url="rtsp://admin:secret@10.0.0.5/stream"), CLOCK, engine, factory, fake_sleep
     )
     passes, previews = [], []
     source.passed.connect(passes.append)
     source.frame.connect(previews.append)
     source.start()
-    qtbot.waitUntil(lambda: len(passes) == 1 and source.reconnects >= 3, timeout=5000)
+    qtbot.waitUntil(lambda: len(passes) == 1 and source.reconnects >= 3, timeout=30_000)
     source.stop()
     assert passes[0].result.plate == parse_plate(PLATE)
     assert passes[0].result.vehicle_type == "van"

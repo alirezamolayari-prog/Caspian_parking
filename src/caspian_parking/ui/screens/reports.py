@@ -130,6 +130,9 @@ class ReportsScreen(Screen):
         right.addWidget(params)
 
         self.result_card = Card()
+        self.local_banner = chip(tr("reports.local_banner"), "warning")
+        self.local_banner.setVisible(False)
+        self.result_card.add(self.local_banner)
         self.kpis = QHBoxLayout()
         self.kpis.setSpacing(Space.XS)
         self.result_card.body().addLayout(self.kpis)
@@ -230,6 +233,7 @@ class ReportsScreen(Screen):
         self.empty.setVisible(not has)
         for button in [*self.export_buttons, self.print_button]:
             button.setEnabled(result is not None)
+        self.local_banner.setVisible(result is not None and result.local_only)
         if result is None:
             self.heatmap.setVisible(False)
             return

@@ -27,6 +27,7 @@ from caspian_parking.services.context import AppContext
 from caspian_parking.services.settings import get_setting
 from caspian_parking.ui.shell.command_palette import CommandPalette, PaletteItem, Provider, matches
 from caspian_parking.ui.shell.registry import ScreenSpec, visible_screens
+from caspian_parking.ui.shell.sync_controller import SyncController
 from caspian_parking.ui.theme.icons import icon, icon_size
 from caspian_parking.ui.theme.manager import ThemeManager, set_dark_title_bar
 from caspian_parking.ui.theme.tokens import Motion, Size, Space
@@ -222,6 +223,10 @@ class MainWindow(QMainWindow):
         self._alert_timer.timeout.connect(self.refresh_alerts)
         self._alert_timer.start(ALERT_INTERVAL_MS)
         QTimer.singleShot(0, self.refresh_alerts)
+        self.sync: SyncController | None = None
+        if ctx.config.role is Role.GATE and ctx.server_engine is not None and ctx.config.joined_at and not ctx.training:
+            self.sync = SyncController(ctx, self, parent=self)
+            self.sync.start()
         if self.screens:
             self.show_screen(self.screens[0].key)
 

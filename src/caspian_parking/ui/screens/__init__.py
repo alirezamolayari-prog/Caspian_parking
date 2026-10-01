@@ -15,6 +15,7 @@ def register_builtin_screens() -> None:
     from caspian_parking.ui.screens.gate import GateScreen
     from caspian_parking.ui.screens.home import HomeScreen
     from caspian_parking.ui.screens.reports import ReportsScreen
+    from caspian_parking.ui.screens.review import ReviewScreen
     from caspian_parking.ui.screens.settings_screen import SettingsScreen
     from caspian_parking.ui.screens.shops import ShopsScreen
     from caspian_parking.ui.screens.subscribers import SubscribersScreen
@@ -82,6 +83,14 @@ def register_builtin_screens() -> None:
             ReportsScreen,
             Permission.VIEW_REPORTS,
             keywords=("report", "گزارش", "مالی", "خروجی"),
+        ),
+        ScreenSpec(
+            "review",
+            "nav.review",
+            "list-checks",
+            ReviewScreen,
+            Permission.CANCEL_TRANSACTIONS,
+            keywords=("review", "بررسی", "تکراری", "تعارض"),
         ),
         ScreenSpec(
             "users",

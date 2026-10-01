@@ -1,15 +1,18 @@
 """Report registry (SPEC §4.12) and a runner that checks permissions.
 
-Reports of later phases (after-hours 18) register
-themselves here when their phase lands.
+Later phases register their reports with ``register``.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+from sqlalchemy.exc import DBAPIError
+
+from caspian_parking.config.machine import Role
 from caspian_parking.core.jalali import format_jdate
 from caspian_parking.core.permissions import Permission
+from caspian_parking.data.session import read_session
 from caspian_parking.i18n import tr
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.exporters import export_excel, export_word
@@ -37,6 +40,7 @@ REPORTS: list[ReportDef] = [
     ReportDef("block_attempts", 15, GENERAL, traffic.block_attempts),
     ReportDef("no_plate", 16, GENERAL, traffic.no_plate),
     ReportDef("camera_accuracy", 17, GENERAL, camera.camera_accuracy),
+    ReportDef("after_hours", 18, GENERAL, camera.after_hours),
     ReportDef("outages", 19, GENERAL, traffic.outages),
     ReportDef("ads", 20, FINANCIAL, ads.ads),
     ReportDef("coupons", 20, FINANCIAL, ads.coupons),
@@ -76,6 +80,17 @@ def run_report(ctx: AppContext, key: str, params: ReportParams, check_permission
     report = get_report(key)
     if check_permission and not ctx.can(report.permission):
         raise ReportError("gate.permission_denied")
+    if ctx.config.role is Role.GATE and not ctx.training:
+        if ctx.server_factory is not None and ctx.link_online:
+            try:
+                with read_session(ctx.server_factory) as session:
+                    return report.runner(session, params)
+            except (DBAPIError, OSError):  # link dropped while running: fall back to local data
+                ctx.link_online = False
+        with ctx.read() as session:
+            result = report.runner(session, params)
+        result.local_only = True  # SPEC §2.2: «گزارش محلی — ممکن است کامل نباشد»
+        return result
     with ctx.read() as session:
         return report.runner(session, params)
 

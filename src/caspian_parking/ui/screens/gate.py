@@ -11,6 +11,7 @@ import functools
 import logging
 import time
 from collections.abc import Callable
+from datetime import datetime
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPixmap, QShortcut
@@ -36,6 +37,7 @@ from caspian_parking.core.plate import Plate, PlateKind, parse_plate
 from caspian_parking.core.receipt import ReceiptAd
 from caspian_parking.core.subscriptions import EntryStatus
 from caspian_parking.core.tariff import PassThroughType, VehicleType, VisitKind
+from caspian_parking.core.tickets import TicketNumber, TicketNumberError, parse_ticket_number
 from caspian_parking.data.models import ActiveSession, Ad, CameraRead, EntryEvent
 from caspian_parking.devices.anpr import AnprError, load_engine
 from caspian_parking.devices.plate_source import PlatePass, PlateSource, create_plate_source
@@ -61,11 +63,13 @@ from caspian_parking.services.gate_service import (
 from caspian_parking.services.identification import Identification, Kind
 from caspian_parking.services.receipts import entry_content, exit_content, plate_of
 from caspian_parking.services.settings import get_setting
+from caspian_parking.services.watch import WatchService
 from caspian_parking.ui.receipt.printing import ReceiptPrinting
 from caspian_parking.ui.receipt.renderer import InsideRow, render_inside_list
 from caspian_parking.ui.screens.base import Screen
 from caspian_parking.ui.screens.gate_dialogs import (
     AlreadyInsideDialog,
+    ForeignTicketDialog,
     LostTicketDialog,
     ReceiptPreviewDialog,
     ask_reason,
@@ -122,6 +126,7 @@ class GateScreen(Screen):
         self.vehicle = VehicleType.SEDAN
         self.scanner = self._create_scanner()
         self.cameras = CameraService(ctx)
+        self.watch = WatchService(ctx)
         self.sources: dict[str, PlateSource] = self._create_sources()
         self.tiles: dict[str, CameraTile] = {}
         self.pending_reads: dict[str, tuple[CameraRead, float]] = {}
@@ -206,15 +211,23 @@ class GateScreen(Screen):
 
     def on_plate_pass(self, item: PlatePass) -> CameraRead | None:
         """A camera saw a vehicle: store it, show it, and prepare the lane (the operator still confirms)."""
+        after_hours = self.watch.after_hours_now()
         try:
-            read = self.cameras.record_pass(item)
+            read = self.cameras.record_pass(item, after_hours=after_hours)
         except Exception:  # storage problems must not break the lane
             log.exception("cannot store camera read")
             return None
         if item.lane in self.tiles:
             self.tiles[item.lane].show_pass(item)
-        self.pending_reads[item.lane] = (read, time.monotonic())
         plate = item.result.plate
+        if after_hours:  # watch mode: logged with its photo, no receipt (SPEC §4.10)
+            if plate is not None:
+                match = self.gate.identify(plate).block
+                if match is not None:
+                    self.show_blocked_alarm(match)
+            show_toast(self, tr("watch.logged"), "info")
+            return read
+        self.pending_reads[item.lane] = (read, time.monotonic())
         if plate is None:
             self.refresh_unidentified()
             show_toast(self, tr("camera.unreadable_toast"), "info")
@@ -665,8 +678,43 @@ class GateScreen(Screen):
         try:
             session = self.gate.resolve(text)
         except GateError as exc:
+            foreign = self._foreign_ticket(text, exc)
+            if foreign is not None:
+                return self.adopt_foreign(*foreign)
             show_toast(self, tr(str(exc)), "warning")
             self.ticket_field.selectAll()
+            return None
+        return self.load_exit(session)
+
+    def _foreign_ticket(self, text: str, error: GateError) -> tuple[int, int, datetime | None] | None:
+        """(gate, sequence, entry time if known) when the ticket belongs to another gate."""
+        payload = error.details.get("payload")
+        if payload is not None:
+            return (
+                (payload.gate, payload.sequence_mod, payload.entry_utc) if payload.gate != self.gate.gate_code else None
+            )
+        try:
+            ticket = parse_ticket_number(text)
+        except TicketNumberError:
+            return None
+        return (ticket.gate, ticket.sequence, None) if ticket.gate != self.gate.gate_code else None
+
+    def adopt_foreign(
+        self, gate_code: int, sequence: int, entry_at: datetime | None, ask: bool = True
+    ) -> ExitQuote | None:
+        """Other gate's ticket while the link is down (SPEC §2.3): the barcode carries the entry time;
+        a typed ticket number needs the entry time printed on the ticket."""
+        if ask:  # pragma: no cover - dialog
+            dialog = ForeignTicketDialog(self, str(TicketNumber(gate_code, sequence)), entry_at)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return None
+            entry_at = dialog.entry_at()
+        if entry_at is None:
+            return None
+        try:
+            session = self.gate.adopt_foreign_ticket(gate_code, sequence, entry_at)
+        except GateError as exc:
+            show_toast(self, tr(str(exc)), "warning")
             return None
         return self.load_exit(session)
 

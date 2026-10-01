@@ -36,6 +36,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--smoke", action="store_true", help="open the main window, then exit with code 0")
     parser.add_argument("--data-root", type=Path, default=None, help="override the data root folder")
     parser.add_argument("--training", action="store_true", help="start in training mode (sandbox database)")
+    parser.add_argument("--server", action="store_true", help="run the server role without a window")
+    parser.add_argument("--service", metavar="COMMAND", help="Windows service: install | start | stop | remove")
     return parser.parse_args(argv)
 
 
@@ -93,6 +95,9 @@ class SessionController(QObject):
         self.window = build_main_window(self.ctx)
         self.window.logout_requested.connect(self.logout)
         self.window.showMaximized()
+        from caspian_parking.ui.shell.morning import show_morning_report
+
+        show_morning_report(self.window, self.ctx)
         return True
 
     def logout(self) -> None:
@@ -149,9 +154,34 @@ def shutdown_tasks(ctx: AppContext) -> None:
     mark_clean_shutdown(ctx)
 
 
+def update_at_start(ctx: AppContext) -> bool:
+    """Gates install a newer version from the server share before anyone logs in (SPEC §7)."""
+    from caspian_parking.config.machine import Role
+    from caspian_parking.services.settings import get_setting
+    from caspian_parking.services.updater import apply_update, check_for_update
+
+    if ctx.config.role is not Role.GATE:
+        return False
+    with ctx.read() as session:
+        share = str(get_setting(session, "update.share") or "")
+    info = check_for_update(share) if share else None
+    if info is None:
+        return False
+    apply_update(info)
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     args = parse_args(argv or [])
+    if args.service:  # pragma: no cover - Windows service control
+        from caspian_parking.services.winservice import handle_command_line
+
+        return handle_command_line([args.service])
+    if args.server:  # pragma: no cover - long-running headless host
+        from caspian_parking.services.server_host import run_server
+
+        return run_server(args.data_root)
     app = create_application()
     temp_root: Path | None = None
     root = args.data_root
@@ -164,6 +194,8 @@ def main(argv: list[str] | None = None) -> int:
         ThemeManager.instance().apply(ctx.config.theme_default)
         if args.smoke:
             return run_smoke(app, ctx, started)
+        if update_at_start(ctx):
+            return 0
         detect_outage(ctx)
         scheduler = AppScheduler(ctx)
         scheduler.start()

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from datetime import datetime, time
+
+from PySide6.QtCore import Qt, QTime
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QScrollArea, QWidget
 
+from caspian_parking.core.jalali import JalaliDate, local_to_utc, to_local
 from caspian_parking.data.models import ActiveSession
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_datetime, fa_ltr, fa_time
@@ -13,6 +16,7 @@ from caspian_parking.services.gate_service import GateService
 from caspian_parking.services.receipts import plate_of
 from caspian_parking.ui.widgets.basics import TextField, label
 from caspian_parking.ui.widgets.feedback import ModalDialog
+from caspian_parking.ui.widgets.inputs import JalaliDateEdit, TimeField
 from caspian_parking.ui.widgets.plate import PlateWidget
 
 
@@ -142,3 +146,28 @@ class LostTicketDialog(ModalDialog):
     def _finish(self, code: int) -> None:
         if self.selected() is not None:
             self.done(code)
+
+
+class ForeignTicketDialog(ModalDialog):
+    """Another gate's ticket that is not here yet (link down): exit with the entry time on the ticket."""
+
+    def __init__(self, parent: QWidget | None, ticket_no: str, entry_at: datetime | None) -> None:
+        super().__init__(parent, tr("gate.foreign_title"), width=520)
+        self.content.addWidget(label(tr("gate.foreign_body", ticket=fa_ltr(ticket_no)), wrap=True))
+        local = to_local(entry_at) if entry_at is not None else None
+        self.date = JalaliDateEdit(JalaliDate.from_gregorian(local.date()) if local else None)
+        self.time = TimeField(QTime(local.hour, local.minute) if local else None)
+        row = QHBoxLayout()
+        row.addWidget(label(tr("gate.foreign_entry_time"), "caption"))
+        row.addWidget(self.date, 2)
+        row.addWidget(self.time, 1)
+        self.content.addLayout(row)
+        if entry_at is not None:  # time read from the signed barcode: shown, not editable
+            self.date.setEnabled(False)
+            self.time.setEnabled(False)
+        self.add_button(tr("common.cancel"), role="reject")
+        self.add_button(tr("gate.foreign_continue"), variant="primary")
+
+    def entry_at(self) -> datetime:
+        moment = self.time.time()
+        return local_to_utc(datetime.combine(self.date.gregorian(), time(moment.hour(), moment.minute())))

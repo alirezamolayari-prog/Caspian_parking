@@ -2,15 +2,6 @@
 
 from caspian_parking.data.models.ads import Ad, AdPrint, Coupon, CouponBatch, CouponRedemption, RaffleDraw
 from caspian_parking.data.models.camera import CameraRead, PlateCorrection, ReadMatch
-from caspian_parking.data.models.sync import (
-    MorningAck,
-    ReviewItem,
-    SessionAlias,
-    SharedSecret,
-    SyncLog,
-    SyncOutbox,
-    SyncState,
-)
 from caspian_parking.data.models.gate import (
     ActiveSession,
     Adjustment,
@@ -33,6 +24,15 @@ from caspian_parking.data.models.people import (
     Shop,
     SubscriptionPayment,
     WalletTransaction,
+)
+from caspian_parking.data.models.sync import (
+    MorningAck,
+    ReviewItem,
+    SessionAlias,
+    SharedSecret,
+    SyncLog,
+    SyncOutbox,
+    SyncState,
 )
 from caspian_parking.data.models.system import (
     AuditLog,

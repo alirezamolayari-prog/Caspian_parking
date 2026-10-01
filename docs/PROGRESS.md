@@ -131,3 +131,19 @@ Built:
 How to run/test: `scripts/check.ps1`. Try it without hardware: Settings → Devices → Cameras → type *Simulator* for both lanes, restart the app.
 
 Known gaps: plate reading from plain RTSP cameras needs a licensed engine plug‑in (none bundled); after‑hours report 18 comes with watch mode (Phase 9).
+
+## Phase 9 — Server role & multi‑gate sync ✅
+Built:
+- Roles per PC (standalone / gate / server). The server uses the central SQL Server database directly; gates keep working on local SQLite and sync with it (migration `0008_sync`).
+- Sync (`services/sync.py`): outbox on gates and a sequence log on the server, both written in the same transaction as the data; push inserts events if absent (idempotent re‑push) and merges reference rows (higher version wins, the losing version goes to `audit_log` + review queue); pull applies other writers' rows in order, waits for sequence gaps that may still be committing, and keeps the local list of vehicles inside up to date.
+- Duplicate heuristics (same subscriber or shop, amount, day, different PCs) → **Needs review** screen; the supervisor cancels one payment (end date and wallet corrected) and closes the item with a note. Nothing is deleted automatically.
+- Other gate's ticket while offline: the signed barcode (or typed ticket + entry time) gives a provisional session; it is linked to the real entry once both gates sync.
+- Joining a gate to the server (Settings → Server & sync): connection test, join (empty local database set aside, server data and ticket key taken over), role, SQL login, update share.
+- Link indicator in the top bar with last sync time; alerts for link down (with unsent count) and clock drift > 60 s. Reports run on the server database when connected, otherwise on local data with the «گزارش محلی» banner.
+- After‑hours watch mode: camera passes outside opening hours are logged with photos, no receipts, blocked plates raise the alarm; morning report acknowledged by the first user of the day (who/when stored); report 18.
+- Server host without a window (`--server`) and Windows service wrapper (`--service install|start|stop|remove`): scheduler, backups, daily reports, heartbeat, watch‑mode cameras.
+- Auto‑update at gate start‑up from a shared folder (`version.json` + silent installer).
+
+How to run/test: `scripts/check.ps1` (sync tests run two gates against an SQLite central database and against LocalDB SQL Server). Try it on one PC: start a copy with `--data-root D:\srv` and role *server*, another with `--data-root D:\g1`, join it from Settings → Server & sync.
+
+Known gaps: the Windows service is installed by the setup program (Phase 11; installing needs administrator rights); final verification on SQL Server Express 2022 + ODBC Driver 18 happens on the site PCs (tests here use LocalDB 2012 + ODBC 13).

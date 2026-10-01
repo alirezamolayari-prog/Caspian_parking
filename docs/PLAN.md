@@ -131,9 +131,9 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** voting logic, simulator end‑to‑end entry with photo, correction storage, accuracy report, reconnect behaviour (fake stream).
 - **Deps:** 3, 6.
 
-## ⬜ Phase 9 — Server role & multi‑gate sync
-- [ ] Roles (Server/Gate/Standalone) in config; server schema on SQL Server; outbox/inbox tables; sync worker (push idempotent, pull by cursor, reference merge rule); duplicate heuristic → "Needs review" queue screen; link status + last sync; clock drift > 60 s warning; report data source selection + local banner.
-- [ ] Server host process + Windows service (pywin32): scheduler, sync hub tasks, backups, daily reports, watch mode; after‑hours watch mode (log in/out with photos, no receipts), morning report ack (who/when); auto‑update check against server share; HMAC key distribution to joining gates.
+## ✅ Phase 9 — Server role & multi‑gate sync
+- [x] Roles (Server/Gate/Standalone) in config; server schema on SQL Server; outbox/inbox tables; sync worker (push idempotent, pull by cursor, reference merge rule); duplicate heuristic → "Needs review" queue screen; link status + last sync; clock drift > 60 s warning; report data source selection + local banner.
+- [x] Server host process + Windows service (pywin32): scheduler, sync hub tasks, backups, daily reports, watch mode; after‑hours watch mode (log in/out with photos, no receipts), morning report ack (who/when); auto‑update check against server share; HMAC key distribution to joining gates.
 - **Tests:** two SQLite gates + LocalDB server: online, offline, reconnect, re‑push idempotency, cross‑gate ticket exit offline (barcode decode), duplicate subscription payment → review queue, drift warning, morning ack.
 - **Deps:** all previous. **Risk:** may need ODBC 18 / SQL 2022 for final verification (owner UAC).
 

@@ -47,6 +47,7 @@ DEFAULTS: dict[str, Any] = {
     "coupons.unit_price": 0,
     "coupons.expiry_days": 30,
     "adscreen.seconds": 8,
+    "update.share": "",
 }
 
 

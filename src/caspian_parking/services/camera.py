@@ -51,7 +51,7 @@ class CameraService:
     def __init__(self, ctx: AppContext) -> None:
         self.ctx = ctx
 
-    def record_pass(self, item: PlatePass) -> CameraRead:
+    def record_pass(self, item: PlatePass, after_hours: bool = False) -> CameraRead:
         """Store the pass (photo first, so the read can point to it)."""
         plate = item.result.plate
         gate_code = self.ctx.config.gate_code
@@ -82,6 +82,7 @@ class CameraService:
                 vehicle_type=item.result.vehicle_type,
                 frames=item.result.frames,
                 photo_id=photo_id,
+                after_hours=after_hours,
             )
             session.add(read)
         return read
