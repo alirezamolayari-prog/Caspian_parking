@@ -2,6 +2,15 @@
 
 from caspian_parking.data.models.ads import Ad, AdPrint, Coupon, CouponBatch, CouponRedemption, RaffleDraw
 from caspian_parking.data.models.camera import CameraRead, PlateCorrection, ReadMatch
+from caspian_parking.data.models.sync import (
+    MorningAck,
+    ReviewItem,
+    SessionAlias,
+    SharedSecret,
+    SyncLog,
+    SyncOutbox,
+    SyncState,
+)
 from caspian_parking.data.models.gate import (
     ActiveSession,
     Adjustment,
@@ -60,6 +69,7 @@ __all__ = [
     "GuestPermit",
     "Holiday",
     "Level",
+    "MorningAck",
     "NightMark",
     "Node",
     "OutageEvent",
@@ -71,11 +81,17 @@ __all__ = [
     "RaffleDraw",
     "ReadMatch",
     "Reprint",
+    "ReviewItem",
     "RolePreset",
+    "SessionAlias",
     "Setting",
+    "SharedSecret",
     "ShiftEvent",
     "Shop",
     "SubscriptionPayment",
+    "SyncLog",
+    "SyncOutbox",
+    "SyncState",
     "TariffVersionRecord",
     "User",
     "Visit",

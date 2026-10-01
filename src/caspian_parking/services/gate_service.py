@@ -341,6 +341,44 @@ class GateService:
                 raise GateError("gate.ticket_not_found")
             return found
 
+    def adopt_foreign_ticket(self, gate_code: int, sequence: int, entry_at: datetime) -> ActiveSession:
+        """Exit of another gate's ticket while that entry has not synced yet (SPEC §2.3).
+
+        The entry time comes from the signed barcode (or is typed from the printed ticket). A provisional
+        session (flag ``foreign``) is used for the exit; sync links it to the real entry later (D-086).
+        """
+        self._require(Permission.OPERATE_GATE)
+        if gate_code == self.gate_code:
+            raise GateError("gate.ticket_not_inside")
+        if entry_at > self._now():
+            raise GateError("gate.bad_entry_time")
+        ticket = TicketNumber(gate_code, sequence)
+        with self.ctx.uow() as session:
+            existing = session.scalar(
+                select(ActiveSession).where(
+                    ActiveSession.gate_code == gate_code, ActiveSession.ticket_no == str(ticket)
+                )
+            )
+            if existing is not None:
+                return existing
+            active = ActiveSession(
+                gate_code=gate_code,
+                ticket_sequence=sequence,
+                ticket_no=str(ticket),
+                plate_key=None,
+                vehicle_type=VehicleType.SEDAN.value,
+                kind=VisitKind.TRANSIENT.value,
+                pass_type=None,
+                category=Category.TRANSIENT.value,
+                entry_at_utc=entry_at,
+                entry_minute=entry_minute(entry_at),
+                no_plate=True,
+                person_id=None,
+                flags=["foreign"],
+            )
+            session.add(active)
+        return active
+
     def get_active(self, session_id: str) -> ActiveSession:
         with self.ctx.read() as session:
             found = session.get(ActiveSession, session_id)

@@ -79,6 +79,7 @@ class MachineConfig:
     backup_destinations: list[str] = field(default_factory=list)
     photos_folder: str = ""  # empty = <data root>\photos
     cameras: list[CameraConfig] = field(default_factory=list)
+    joined_at: str = ""  # gate: when this PC joined the server (ISO time); empty = not joined
 
     def camera_for(self, lane: str) -> CameraConfig | None:
         return next((c for c in self.cameras if c.lane == lane and c.enabled), None)

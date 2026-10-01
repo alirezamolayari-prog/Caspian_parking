@@ -29,6 +29,7 @@ class CameraRead(EventMixin, Base):
     vehicle_type: Mapped[str | None] = mapped_column(String(20), default=None)
     frames: Mapped[int] = mapped_column(Integer, default=1)
     photo_id: Mapped[str | None] = mapped_column(String(ID_LENGTH), default=None)
+    after_hours: Mapped[bool] = mapped_column(Boolean, default=False)  # watch mode (SPEC §4.10)
 
 
 class ReadMatch(EventMixin, Base):

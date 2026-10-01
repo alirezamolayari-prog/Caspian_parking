@@ -7,7 +7,16 @@ from collections import defaultdict
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from caspian_parking.data.models import Adjustment, Debt, ExitEvent, Gate, Payment, SubscriptionPayment, Visit
+from caspian_parking.data.models import (
+    Adjustment,
+    Cancellation,
+    Debt,
+    ExitEvent,
+    Gate,
+    Payment,
+    SubscriptionPayment,
+    Visit,
+)
 from caspian_parking.data.models.people import WalletTransaction
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_datetime, fa_digits, fa_money
@@ -36,6 +45,9 @@ def financial(session: Session, params: ReportParams) -> ReportResult:
         SubscriptionPayment.paid_at_utc >= params.start,
         SubscriptionPayment.paid_at_utc < params.end,
         SubscriptionPayment.method.in_(METHODS),
+        SubscriptionPayment.id.not_in(
+            select(Cancellation.target_id).where(Cancellation.target_table == "subscription_payments")
+        ),
     )
     if params.gate_code is not None:
         subs_stmt = subs_stmt.where(SubscriptionPayment.gate_code == params.gate_code)

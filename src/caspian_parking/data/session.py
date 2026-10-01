@@ -20,9 +20,11 @@ from sqlalchemy.orm.attributes import instance_state
 from caspian_parking.core.clock import SYSTEM_CLOCK, Clock
 from caspian_parking.core.ids import uuid7
 from caspian_parking.data.base import Base, EntityMixin, ReferenceMixin, is_append_only
-from caspian_parking.data.models import AuditLog
+from caspian_parking.data.models import AuditLog, SyncLog, SyncOutbox
 
 _SKIP_AUDIT_FIELDS = frozenset({"row_version", "updated_at_utc", "updated_by"})
+# Tables that stay on the PC that wrote them: projections and local files (SPEC §2.2, DECISIONS D-083).
+LOCAL_ONLY_TABLES = frozenset({"active_sessions", "photos"})
 MASKED = "***"
 
 
@@ -49,6 +51,7 @@ class WriteContext:
     clock: Clock = SYSTEM_CLOCK
     reason: str | None = None
     locked_before: datetime | None = None  # start of the open fiscal year once a year was closed
+    sync: str | None = None  # "outbox" (gate) | "log" (server) | None (standalone)
 
 
 def append_only_tables() -> frozenset[str]:
@@ -180,6 +183,26 @@ def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
                 obj.is_active = True
             if getattr(type(obj), "__audited__", False):
                 _audit(session, ctx, obj, "create", _snapshot(obj))
+
+    if ctx.sync:
+        changed = [o for o in session.new if isinstance(o, EntityMixin)]
+        changed += [o for o in dirty if not is_append_only(o)]
+        _queue_sync(session, ctx, changed, now)
+
+
+def _queue_sync(session: Session, ctx: WriteContext, objects: list[EntityMixin], now: datetime) -> None:
+    """Gate: queue rows for the server (outbox). Server: append them to the pull log."""
+    seen: set[tuple[str, str]] = set()
+    for obj in objects:
+        table = str(type(obj).__table__.name)  # type: ignore[attr-defined]
+        key = (table, obj.id)
+        if table in LOCAL_ONLY_TABLES or key in seen:
+            continue
+        seen.add(key)
+        if ctx.sync == "outbox":
+            session.add(SyncOutbox(id=uuid7(), table_name=table, row_id=obj.id, queued_at_utc=now))
+        else:
+            session.add(SyncLog(table_name=table, row_id=obj.id, writer_node=ctx.node_id, logged_at_utc=now))
 
 
 @event.listens_for(Session, "do_orm_execute")

@@ -24,6 +24,7 @@ from caspian_parking.core.subscriptions import (
     renew,
 )
 from caspian_parking.data.models import (
+    Cancellation,
     EntryEvent,
     GuestPermit,
     Person,
@@ -286,6 +287,57 @@ class PeopleService:
             amount, days = self.price_for(session, person)
             renewal = renew(person.subscription_end_utc, now, days, self._entries_while_overdue(session, person, now))
         return PaymentPreview(amount, days, renewal)
+
+    def cancel_subscription_payment(self, payment_id: str, reason: str) -> Cancellation:
+        """Void a subscription payment (e.g. the same payment entered on two gates while offline).
+
+        Writes a cancellation event; the subscription end moves back if this payment set it, and a wallet
+        payment is refunded to the shop wallet. Nothing is deleted.
+        """
+        self._require(Permission.CANCEL_TRANSACTIONS)
+        if not reason.strip():
+            raise PeopleError("gate.reason_required")
+        with self.ctx.uow(reason=reason) as session:
+            payment = session.get(SubscriptionPayment, payment_id)
+            if payment is None:
+                raise PeopleError("people.not_found")
+            already = session.scalar(
+                select(func.count())
+                .select_from(Cancellation)
+                .where(Cancellation.target_table == "subscription_payments", Cancellation.target_id == payment.id)
+            )
+            if already:
+                raise PeopleError("people.already_cancelled")
+            cancellation = Cancellation(target_table="subscription_payments", target_id=payment.id, reason=reason)
+            session.add(cancellation)
+            person = self._get(session, payment.person_id)
+            # another valid payment may give the same end date (the same payment entered on two gates)
+            still_covered = session.scalar(
+                select(func.count())
+                .select_from(SubscriptionPayment)
+                .where(
+                    SubscriptionPayment.person_id == person.id,
+                    SubscriptionPayment.id != payment.id,
+                    SubscriptionPayment.new_end_utc == payment.new_end_utc,
+                    SubscriptionPayment.id.not_in(
+                        select(Cancellation.target_id).where(Cancellation.target_table == "subscription_payments")
+                    ),
+                )
+            )
+            if person.subscription_end_utc == payment.new_end_utc and not still_covered:
+                PersonRepository(session).update(person, subscription_end_utc=payment.previous_end_utc)
+            if payment.shop_id:
+                session.add(
+                    WalletTransaction(
+                        shop_id=payment.shop_id,
+                        kind="adjustment",
+                        amount=payment.amount,
+                        person_id=person.id,
+                        reference_id=payment.id,
+                        note=reason,
+                    )
+                )
+        return cancellation
 
     def pay_subscription(self, person_id: str, method: str, amount: int | None = None) -> SubscriptionPayment:
         """Record a subscription payment (cash / card / mall_card / wallet) and extend the end date."""
