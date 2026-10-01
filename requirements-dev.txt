@@ -20,3 +20,9 @@ pluggy==1.6.0
 packaging==26.3
 pygments==2.21.0
 colorama==0.4.6
+# packaging (scripts\build.ps1)
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8
+altgraph==0.17.5
+pefile==2024.8.26
+pywin32-ctypes==0.2.3
