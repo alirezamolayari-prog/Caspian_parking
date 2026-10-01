@@ -39,6 +39,11 @@ from caspian_parking.ui.widgets.feedback import show_toast
 PRINTER_BACKENDS = ("simulator", "windows", "escpos")
 SCANNER_MODES = ("wedge", "serial", "off")
 CAMERA_KINDS = ("off", "simulator", "rtsp", "smart")
+BARRIER_KINDS = ("off", "simulator", "serial", "tcp", "http")
+RFID_KINDS = ("off", "simulator", "wedge", "serial", "tcp")
+POS_KINDS = ("manual", "simulator")
+LED_KINDS = ("off", "simulator", "serial", "tcp")
+POS_TEST_AMOUNT = 10_000  # Rial
 LABEL_KEYS = ("vehicle_type", "entry_date", "entry_time", "ticket_no", "duplicate")
 
 
@@ -136,6 +141,7 @@ class HardwareTab(QWidget):
         self.scanner.scanned.connect(self.show_scan)
 
         layout.addWidget(self._cameras_card())
+        layout.addWidget(self._devices_card())
 
         save_row = QHBoxLayout()
         save_row.addStretch(1)
@@ -195,6 +201,119 @@ class HardwareTab(QWidget):
         card.body().addLayout(grid)
         return card
 
+    def _devices_card(self) -> Card:
+        """Barrier, card reader, card terminal and LED sign (each can be off)."""
+        devices = self.ctx.config.devices
+        card = Card(tr("hardware.other_devices"))
+        card.add(label(tr("hardware.other_hint"), "muted", wrap=True))
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(Space.M)
+
+        def combo(prefix: str, values: tuple[str, ...], current: str) -> QComboBox:
+            box = QComboBox()
+            for value in values:
+                box.addItem(tr(f"{prefix}_{value}"), value)
+            box.setCurrentIndex(max(0, box.findData(current)))
+            return box
+
+        self.barrier_kind = combo("hardware.barrier", BARRIER_KINDS, devices.barrier_kind)
+        self.barrier_port = TextField("COM3 / 10.0.0.50:6722 / http://…", persian_digits=False)
+        self.barrier_port.setText(devices.barrier_port)
+        self.barrier_open = TextField("A0 01 01 A2", persian_digits=False)
+        self.barrier_open.setText(devices.barrier_open_cmd)
+        self.barrier_close = TextField("A0 01 00 A1", persian_digits=False)
+        self.barrier_close.setText(devices.barrier_close_cmd)
+        self.rfid_kind = combo("hardware.rfid", RFID_KINDS, devices.rfid_kind)
+        self.rfid_port = TextField("COM4 / 10.0.0.60:6000", persian_digits=False)
+        self.rfid_port.setText(devices.rfid_port)
+        self.pos_kind = combo("hardware.pos", POS_KINDS, devices.pos_kind)
+        self.pos_timeout = QSpinBox()
+        self.pos_timeout.setRange(10, 300)
+        self.pos_timeout.setValue(devices.pos_timeout_s)
+        self.led_kind = combo("hardware.led", LED_KINDS, devices.led_kind)
+        self.led_port = TextField("COM5 / 10.0.0.70:5000", persian_digits=False)
+        self.led_port.setText(devices.led_port)
+        rows = [
+            ("hardware.barrier", self.barrier_kind, self.barrier_port, self.barrier_open, self.barrier_close),
+            ("hardware.rfid", self.rfid_kind, self.rfid_port, None, None),
+            ("hardware.pos", self.pos_kind, self.pos_timeout, None, None),
+            ("hardware.led", self.led_kind, self.led_port, None, None),
+        ]
+        for row, (key, kind, address, extra1, extra2) in enumerate(rows):
+            grid.addWidget(label(tr(key), "title"), row, 0)
+            grid.addWidget(kind, row, 1)
+            grid.addWidget(address, row, 2)
+            if extra1 is not None:
+                grid.addWidget(extra1, row, 3)
+            if extra2 is not None:
+                grid.addWidget(extra2, row, 4)
+        grid.setColumnStretch(2, 1)
+        card.body().addLayout(grid)
+        tests = QHBoxLayout()
+        self.device_status = label("", "muted", wrap=True)
+        tests.addWidget(self.device_status, 1)
+        tests.addWidget(Button(tr("hardware.test_barrier"), "log-out", on_click=self.test_barrier))
+        tests.addWidget(Button(tr("hardware.test_led"), "monitor", on_click=self.test_led))
+        tests.addWidget(Button(tr("hardware.test_pos"), "credit-card", on_click=self.test_pos))
+        card.body().addLayout(tests)
+        return card
+
+    def _apply_devices(self) -> None:
+        devices = self.ctx.config.devices
+        devices.barrier_kind = self.barrier_kind.currentData()
+        devices.barrier_port = self.barrier_port.text().strip()
+        devices.barrier_open_cmd = self.barrier_open.text().strip()
+        devices.barrier_close_cmd = self.barrier_close.text().strip()
+        devices.rfid_kind = self.rfid_kind.currentData()
+        devices.rfid_port = self.rfid_port.text().strip()
+        devices.pos_kind = self.pos_kind.currentData()
+        devices.pos_timeout_s = self.pos_timeout.value()
+        devices.led_kind = self.led_kind.currentData()
+        devices.led_port = self.led_port.text().strip()
+
+    def test_barrier(self) -> bool:
+        from caspian_parking.devices.barrier import BarrierError, create_barrier
+
+        self._apply_devices()
+        try:
+            barrier = create_barrier(self.ctx.config.devices)
+        except BarrierError as exc:
+            self.device_status.setText(tr(str(exc)))
+            return False
+        ok = barrier is not None and barrier.test()
+        if ok and barrier is not None:
+            barrier.open("entry")
+        self.device_status.setText(tr("hardware.device_ok") if ok else tr("hardware.device_bad"))
+        return ok
+
+    def test_led(self) -> bool:
+        from caspian_parking.devices.led import LedError, create_led
+
+        self._apply_devices()
+        try:
+            led = create_led(self.ctx.config.devices)
+            if led is None:
+                raise LedError("off")
+            led.show(tr("hardware.led_test_text"))
+        except (LedError, OSError):
+            self.device_status.setText(tr("hardware.device_bad"))
+            return False
+        self.device_status.setText(tr("hardware.device_ok"))
+        return True
+
+    def test_pos(self) -> bool:
+        """Sends the smallest amount to the terminal; the operator cancels it on the device."""
+        from caspian_parking.devices.payment import create_terminal
+
+        self._apply_devices()
+        terminal = create_terminal(self.ctx.config.devices.pos_kind)
+        if terminal is None:
+            self.device_status.setText(tr("hardware.pos_manual"))
+            return False
+        result = terminal.request(POS_TEST_AMOUNT, self.ctx.config.devices.pos_timeout_s)
+        self.device_status.setText(tr("hardware.device_ok") if result.approved else tr(result.error or "pos.declined"))
+        return result.approved
+
     def camera_configs(self) -> list[CameraConfig]:
         configs = []
         for lane, widgets in self.camera_rows.items():
@@ -239,6 +358,7 @@ class HardwareTab(QWidget):
         devices.scanner_port = self.scanner_port.currentText().strip()
         self.ctx.config.gate_code = self.gate_code.value()
         self.ctx.config.cameras = self.camera_configs()
+        self._apply_devices()
         self.ctx.save_config()
         show_toast(self, tr("common.saved"))
 

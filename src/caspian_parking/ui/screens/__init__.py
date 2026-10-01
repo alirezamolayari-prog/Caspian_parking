@@ -89,7 +89,7 @@ def register_builtin_screens() -> None:
             "nav.review",
             "list-checks",
             ReviewScreen,
-            Permission.CANCEL_TRANSACTIONS,
+            Permission.RESOLVE_REVIEW,
             keywords=("review", "بررسی", "تکراری", "تعارض"),
         ),
         ScreenSpec(

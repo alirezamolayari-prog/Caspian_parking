@@ -15,6 +15,7 @@ from caspian_parking.data.models.gate import (
     Reprint,
     Visit,
 )
+from caspian_parking.data.models.hardware import BarrierOpen, PersonCard
 from caspian_parking.data.models.people import (
     Block,
     BlockAttempt,
@@ -53,6 +54,7 @@ __all__ = [
     "AdPrint",
     "Adjustment",
     "AuditLog",
+    "BarrierOpen",
     "Block",
     "BlockAttempt",
     "CameraRead",
@@ -75,6 +77,7 @@ __all__ = [
     "OutageEvent",
     "Payment",
     "Person",
+    "PersonCard",
     "PersonPlate",
     "Photo",
     "PlateCorrection",

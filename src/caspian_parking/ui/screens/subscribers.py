@@ -37,6 +37,7 @@ from caspian_parking.ui.screens.gate_dialogs import ask_reason
 from caspian_parking.ui.theme.tokens import Space
 from caspian_parking.ui.widgets.alerts import LightDelegate
 from caspian_parking.ui.widgets.basics import Button, Card, TextField, chip, label, set_chip
+from caspian_parking.ui.widgets.cards_box import CardsBox
 from caspian_parking.ui.widgets.feedback import EmptyState, ModalDialog, StatusLight, show_toast
 from caspian_parking.ui.widgets.inputs import MoneyField
 from caspian_parking.ui.widgets.plate import PlateWidget
@@ -153,6 +154,8 @@ class SubscriberProfile(QWidget):
         add_row.addWidget(self.moto)
         add_row.addWidget(Button(tr("subs.add_plate"), "plus", on_click=self.add_plate))
         layout.addLayout(add_row)
+        self.cards = CardsBox(self.ctx)
+        layout.addWidget(self.cards)
         self.subscription = label("", "muted", wrap=True)
         layout.addWidget(self.subscription)
         actions = QHBoxLayout()
@@ -183,6 +186,7 @@ class SubscriberProfile(QWidget):
         for widget in (self.pay_button, self.negative_button, self.exempt_button):
             widget.setEnabled(editing)
         self.plate_input.clear()
+        self.cards.set_person(person.id if person is not None else None)
         while self.plates_box.count():
             item = self.plates_box.takeAt(0)
             old = item.widget() if item is not None else None

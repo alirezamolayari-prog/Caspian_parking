@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QLineEdit
@@ -91,6 +92,7 @@ def test_modifier_keys_pass_through(qtbot, themed):
     assert not scanner.handle_key(field, event)
 
 
+@pytest.mark.serial  # real key timing (35 ms bursts): runs alone, not under parallel load
 def test_installed_filter_works_with_real_events(qtbot, themed):
     scanner = WedgeScanner()
     scanner.install()

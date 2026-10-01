@@ -34,6 +34,7 @@ from caspian_parking.services.settings import get_setting
 
 PACKAGES = ("bronze", "silver", "gold")
 PLACEMENTS = ("entry", "exit")
+NEWLINE = chr(10)
 
 
 class AdError(RuntimeError):
@@ -308,3 +309,19 @@ def advertiser_discount(session: Session, shop_id: str | None, day: date) -> int
         .where(Ad.shop_id == shop_id, Ad.is_active.is_(True), Ad.start_date <= day, Ad.end_date >= day)
     )
     return int(get_setting(session, "ads.advertiser_discount_percent")) if running else 0
+
+
+def screen_texts(ctx: AppContext) -> list[str]:
+    """Text slides for the ad display: running ads whose package includes the screen (Gold)."""
+    today = local_date(ctx.clock.now_utc())
+    texts = []
+    with ctx.read() as session:
+        for ad in session.scalars(
+            select(Ad).where(Ad.is_active.is_(True), Ad.start_date <= today, Ad.end_date >= today)
+        ):
+            if "screen" not in package_features(session, ad.package):
+                continue
+            shop = session.get(Shop, ad.shop_id)
+            parts = [shop.name if shop else "", ad.offer or ad.text, ad.location]
+            texts.append(NEWLINE.join(part for part in parts if part))
+    return texts

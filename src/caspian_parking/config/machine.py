@@ -45,6 +45,25 @@ class DeviceConfig:
     scanner_mode: str = "wedge"  # wedge (USB keyboard) | serial | off
     scanner_port: str = ""
     scanner_baud: int = 9600
+    # barrier relay (SPEC §6): off | simulator | serial | tcp | http
+    barrier_kind: str = "off"
+    barrier_port: str = ""  # COM port (serial) / host:port (tcp) / URL (http)
+    barrier_baud: int = 9600
+    barrier_open_cmd: str = "A0 01 01 A2"  # hex bytes (serial / tcp) — common USB relay boards
+    barrier_close_cmd: str = "A0 01 00 A1"
+    barrier_pulse_ms: int = 800
+    # RFID / UHF card readers: off | simulator | wedge | serial | tcp
+    rfid_kind: str = "off"
+    rfid_port: str = ""
+    rfid_baud: int = 9600
+    # card terminal (PC-POS): manual | simulator | <PSP driver when its SDK is available>
+    pos_kind: str = "manual"
+    pos_address: str = ""
+    pos_timeout_s: int = 60
+    # LED sign: off | simulator | serial | tcp
+    led_kind: str = "off"
+    led_port: str = ""
+    led_baud: int = 9600
 
 
 @dataclass

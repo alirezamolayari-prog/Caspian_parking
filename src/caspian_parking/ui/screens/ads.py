@@ -32,7 +32,7 @@ from caspian_parking.i18n import tr
 from caspian_parking.i18n.bidi import ltr
 from caspian_parking.i18n.format import fa_date, fa_digits, fa_money
 from caspian_parking.services import templates
-from caspian_parking.services.ads import PACKAGES, AdError, AdService, ad_light
+from caspian_parking.services.ads import PACKAGES, AdError, AdService, ad_light, screen_texts
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.coupons import CouponError, CouponService, CouponStatus
 from caspian_parking.services.people import PeopleService
@@ -773,7 +773,9 @@ class AdsScreen(Screen):
 
     def open_slideshow(self) -> SlideshowWindow:
         if self.slideshow is None:
-            self.slideshow = SlideshowWindow(self.ctx.data_root.slideshow, self.slide_seconds.value())
+            self.slideshow = SlideshowWindow(
+                self.ctx.data_root.slideshow, self.slide_seconds.value(), texts=lambda: screen_texts(self.ctx)
+            )
         self.slideshow.show_on_best_screen()
         return self.slideshow
 

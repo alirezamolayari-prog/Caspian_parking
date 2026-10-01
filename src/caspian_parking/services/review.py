@@ -41,7 +41,7 @@ class ReviewService:
         self.ctx = ctx
 
     def _require(self) -> None:
-        if not self.ctx.can(Permission.CANCEL_TRANSACTIONS):
+        if not self.ctx.can(Permission.RESOLVE_REVIEW):
             raise ReviewError("gate.permission_denied")
 
     def items(self, status: str = "open") -> list[ReviewItem]:

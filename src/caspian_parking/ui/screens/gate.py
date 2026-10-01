@@ -40,8 +40,12 @@ from caspian_parking.core.tariff import PassThroughType, VehicleType, VisitKind
 from caspian_parking.core.tickets import TicketNumber, TicketNumberError, parse_ticket_number
 from caspian_parking.data.models import ActiveSession, Ad, CameraRead, EntryEvent
 from caspian_parking.devices.anpr import AnprError, load_engine
+from caspian_parking.devices.barrier import create_barrier
+from caspian_parking.devices.led import LedSign, create_led
+from caspian_parking.devices.payment import PaymentTerminal, PosResult, create_terminal
 from caspian_parking.devices.plate_source import PlatePass, PlateSource, create_plate_source
 from caspian_parking.devices.printer import PrinterError
+from caspian_parking.devices.rfid import CardReader, create_reader
 from caspian_parking.devices.scanner import ScannerSource, SerialScanner, WedgeScanner
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_digits, fa_duration, fa_ltr, fa_money, fa_number, fa_time
@@ -59,6 +63,14 @@ from caspian_parking.services.gate_service import (
     GateService,
     OpenDebt,
     PaymentMethod,
+)
+from caspian_parking.services.hardware import (
+    BarrierService,
+    CardService,
+    HardwareError,
+    led_messages,
+    led_seconds,
+    resolve_card,
 )
 from caspian_parking.services.identification import Identification, Kind
 from caspian_parking.services.receipts import entry_content, exit_content, plate_of
@@ -84,6 +96,7 @@ from caspian_parking.ui.widgets.inputs import MoneyField
 from caspian_parking.ui.widgets.plate import PlateWidget
 from caspian_parking.ui.widgets.plate_input import PlateDelegate, PlateInput
 from caspian_parking.ui.widgets.table import Column, DataTable, LazyTableModel
+from caspian_parking.ui.workers import run_in_background
 
 log = logging.getLogger(__name__)
 
@@ -126,6 +139,18 @@ class GateScreen(Screen):
         self.vehicle = VehicleType.SEDAN
         self.scanner = self._create_scanner()
         self.cameras = CameraService(ctx)
+        devices = ctx.config.devices
+        self.barriers = BarrierService(ctx, create_barrier(devices))
+        self.terminal: PaymentTerminal | None = create_terminal(devices.pos_kind)
+        self.pos_busy = False
+        self.cards = CardService(ctx)
+        self.card_reader: CardReader | None = create_reader(devices)
+        if self.card_reader is not None:
+            self.card_reader.setParent(self)
+            self.card_reader.card_read.connect(self.on_card)
+        self.led: LedSign | None = create_led(devices)
+        self._led_messages: list[str] = []
+        self._led_index = 0
         self.watch = WatchService(ctx)
         self.sources: dict[str, PlateSource] = self._create_sources()
         self.tiles: dict[str, CameraTile] = {}
@@ -144,6 +169,10 @@ class GateScreen(Screen):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.refresh_lists)
         self._timer.start(REFRESH_MS)
+        self._led_timer = QTimer(self)
+        self._led_timer.timeout.connect(self.led_tick)
+        if self.led is not None:
+            self._led_timer.start(led_seconds(ctx) * 1000)
         self.refresh_lists()
         self.reset_exit()
 
@@ -335,6 +364,11 @@ class GateScreen(Screen):
             button.setMinimumHeight(Size.TOUCH_MIN)
             actions.addWidget(button, index // 2, index % 2)
         card.body().addLayout(actions)
+        self.entry_barrier_button = Button(
+            tr("barrier.manual_open"), "log-out", variant="ghost", on_click=lambda: self.open_barrier_manual("entry")
+        )
+        self.entry_barrier_button.setVisible(self.barriers.present)
+        card.add(self.entry_barrier_button)
         card.body().addStretch(1)
         self.set_vehicle(VehicleType.SEDAN)
         return card
@@ -466,6 +500,9 @@ class GateScreen(Screen):
             show_toast(self, tr(str(exc)), "warning")
             return None
         self._link_read("entry", result.session.id, plate, vehicle.value)
+        ident = result.identification
+        cause = "receipt" if result.needs_receipt else (ident.kind.value if ident is not None else "receipt")
+        self._open_barrier("entry", cause, result.session.id)
         if result.needs_receipt or self._print_for_covered():
             ad = self._rotating_ad("entry")
             content = entry_content(result.session, result.payload, ad=self._receipt_ad(ad), training=self.ctx.training)
@@ -637,7 +674,11 @@ class GateScreen(Screen):
         self.night_button = Button(tr("gate.night"), "moon-star", variant="ghost", on_click=self.mark_night_current)
         self.cancel_button = Button(tr("gate.cancel_entry"), "ban", variant="ghost", on_click=self.cancel_current)
         self.flee_button = Button(tr("gate.flee"), "siren", variant="danger", on_click=self.flee_current)
-        for button in (self.night_button, self.cancel_button, self.flee_button):
+        self.exit_barrier_button = Button(
+            tr("barrier.manual_open"), "log-out", variant="ghost", on_click=lambda: self.open_barrier_manual("exit")
+        )
+        self.exit_barrier_button.setVisible(self.barriers.present)
+        for button in (self.exit_barrier_button, self.night_button, self.cancel_button, self.flee_button):
             more.addWidget(button)
         details.addLayout(more)
         card.add(self.exit_details, 1)
@@ -666,6 +707,9 @@ class GateScreen(Screen):
             return
         if is_coupon_code(text):
             self.apply_coupon(text)
+            return
+        if self.cards.is_card(text):
+            self.on_card(text)
             return
         self.ticket_field.setText(text)
         self.calculate()
@@ -783,11 +827,18 @@ class GateScreen(Screen):
         self.cash_button.setFocus()
         return quote
 
-    def pay(self, method: PaymentMethod) -> bool:
+    def pay(self, method: PaymentMethod, reference: str | None = None) -> bool:
         if self.quote is None:
             show_toast(self, tr("gate.no_exit_selected"), "info")
             return False
+        if self.pos_busy:
+            return False
         quote = self.quote
+        if method is PaymentMethod.CARD and self.terminal is not None and reference is None:
+            amount = self.manual_amount.value() if self.manual_amount.isEnabled() else quote.amount_due
+            if amount > 0:
+                self._pos_request(amount)
+                return True
         manual = self.manual_amount.value() if self.manual_amount.isEnabled() else None
         night = self.night_amount.value() if self.night_amount.isEnabled() else None
         if night is not None and night == quote.breakdown.night_fines:
@@ -803,11 +854,13 @@ class GateScreen(Screen):
                 manual_amount=manual,
                 night_fines=night,
                 reason=self.adjust_reason.value() or None,
+                reference=reference,
             )
         except GateError as exc:
             show_toast(self, tr(str(exc)), "error")
             return False
         self._link_read("exit", quote.session.id, plate_of(quote.session), None)
+        self._open_barrier("exit", "paid" if visit.amount_paid else "free_exit", quote.session.id)
         if self.exit_receipt.isChecked():
             content = exit_content(
                 quote.session,
@@ -825,6 +878,95 @@ class GateScreen(Screen):
         self.refresh_lists()
         self.plate_input.focus_first()
         return True
+
+    # ================================================================ card terminal (PC-POS)
+    def _pos_request(self, amount: int) -> None:
+        """Send the amount to the terminal on a worker thread; the screen stays usable meanwhile."""
+        assert self.terminal is not None
+        terminal = self.terminal
+        timeout = self.ctx.config.devices.pos_timeout_s
+        self.pos_busy = True
+        for button in (self.cash_button, self.card_button, self.mall_button):
+            button.setEnabled(False)
+        show_toast(self, tr("pos.waiting", amount=fa_money(amount)), "info")
+        run_in_background(lambda: terminal.request(amount, timeout), self._pos_done, self._pos_failed)
+
+    def _pos_finish(self) -> None:
+        self.pos_busy = False
+        for button in (self.cash_button, self.card_button, self.mall_button):
+            button.setEnabled(True)
+
+    def _pos_done(self, result: PosResult) -> None:
+        self._pos_finish()
+        if result.approved:
+            self.pay(PaymentMethod.CARD, reference=result.trace or "")
+        else:
+            show_toast(self, tr(result.error or "pos.declined"), "error")
+
+    def _pos_failed(self, error: Exception) -> None:
+        log.error("card terminal failed: %s", error)
+        self._pos_finish()
+        show_toast(self, tr("pos.offline"), "error")
+
+    # ================================================================ barrier
+    def _open_barrier(self, lane: str, cause: str, session_id: str | None) -> None:
+        if not self.barriers.present:
+            return
+        try:
+            self.barriers.open(lane, cause, session_id)
+            self._clear_alert("barrier")
+        except HardwareError as exc:
+            self._alert("barrier", tr(str(exc)), "danger")
+
+    def open_barrier_manual(self, lane: str, reason: str | None = None) -> bool:
+        """Manual opening (with the reason in the log), e.g. for an ambulance or a jammed card."""
+        if reason is None:  # pragma: no cover - dialog
+            reason = ask_reason(self, tr("barrier.manual_title"), tr(f"barrier.lane_{lane}"))
+            if not reason:
+                return False
+        try:
+            self.barriers.open(lane, "manual", reason=reason)
+        except HardwareError as exc:
+            show_toast(self, tr(str(exc)), "error")
+            return False
+        show_toast(self, tr("barrier.opened"))
+        return True
+
+    # ================================================================ RFID cards
+    def on_card(self, uid: str) -> bool:
+        """Subscriber / free-access card: entry with their plate, or exit of their vehicle inside."""
+        try:
+            action = resolve_card(self.ctx, uid)
+        except GateError as exc:
+            show_toast(self, tr(str(exc)), "warning")
+            return False
+        if action.lane == "entry":
+            assert action.plate is not None
+            return self._register(action.plate, action.vehicle, VisitKind.TRANSIENT) is not None
+        assert action.session is not None
+        quote = self.load_exit(action.session)
+        if quote is not None and quote.amount_due == 0:
+            return self.pay(PaymentMethod.CASH)
+        return quote is not None
+
+    # ================================================================ LED sign
+    def led_tick(self) -> str | None:
+        if self.led is None:
+            return None
+        if self._led_index >= len(self._led_messages):
+            self._led_messages = led_messages(self.ctx)
+            self._led_index = 0
+        if not self._led_messages:
+            return None
+        text = self._led_messages[self._led_index]
+        self._led_index += 1
+        led = self.led
+        run_in_background(lambda: led.show(text), lambda _r: None, self._led_failed)
+        return text
+
+    def _led_failed(self, error: Exception) -> None:
+        log.warning("LED sign: %s", error)
+        self._alert("led", tr("led.offline"), "warning")
 
     def flee_current(self) -> bool:
         if self.quote is None:
@@ -1130,6 +1272,8 @@ class GateScreen(Screen):
         elif isinstance(self.scanner, SerialScanner):
             self.scanner.start()
         self.start_cameras()
+        if self.card_reader is not None and not self.card_reader.online:
+            self.card_reader.start()
         flagged = self.gate.auto_flag_overnight()
         if flagged:
             show_toast(self, tr("gate.overnight_flagged", n=fa_number(len(flagged))), "warning")
@@ -1145,6 +1289,8 @@ class GateScreen(Screen):
         if isinstance(self.scanner, SerialScanner):
             self.scanner.stop()
         self.stop_cameras()
+        if self.card_reader is not None:
+            self.card_reader.stop()
         super().closeEvent(event)  # type: ignore[arg-type]
 
     def print_night_list(self) -> bool:

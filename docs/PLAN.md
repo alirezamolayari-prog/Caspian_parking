@@ -137,8 +137,8 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** two SQLite gates + LocalDB server: online, offline, reconnect, re‑push idempotency, cross‑gate ticket exit offline (barcode decode), duplicate subscription payment → review queue, drift warning, morning ack.
 - **Deps:** all previous. **Risk:** may need ODBC 18 / SQL 2022 for final verification (owner UAC).
 
-## ⬜ Phase 10 — Hardware integrations (behind flags)
-- [ ] Barrier (serial/USB/network relay + simulator; open rules; manual open with log), RFID/UHF (HID, serial, TCP + simulator; card ↔ profile; lost card), LED sign (text rotation: ads, free spaces), PaymentTerminal (interface + simulator + manual; PSP drivers pending SDK), AdScreen polish; Hardware settings screen with test buttons and enable flags.
+## ✅ Phase 10 — Hardware integrations (behind flags)
+- [x] Barrier (serial/USB/network relay + simulator; open rules; manual open with log), RFID/UHF (HID, serial, TCP + simulator; card ↔ profile; lost card), LED sign (text rotation: ads, free spaces), PaymentTerminal (interface + simulator + manual; PSP drivers pending SDK), AdScreen polish; Hardware settings screen with test buttons and enable flags.
 - **Tests:** simulators drive each flow (paid → barrier opens, RFID subscriber entry, POS success/failure/timeout, LED rotation).
 - **Deps:** 3, 4, 7, 8.
 

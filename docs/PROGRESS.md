@@ -147,3 +147,16 @@ Built:
 How to run/test: `scripts/check.ps1` (sync tests run two gates against an SQLite central database and against LocalDB SQL Server). Try it on one PC: start a copy with `--data-root D:\srv` and role *server*, another with `--data-root D:\g1`, join it from Settings → Server & sync.
 
 Known gaps: the Windows service is installed by the setup program (Phase 11; installing needs administrator rights); final verification on SQL Server Express 2022 + ODBC Driver 18 happens on the site PCs (tests here use LocalDB 2012 + ODBC 13).
+
+## Phase 10 — Hardware integrations ✅
+Built (every device behind an interface, with a simulator; each can be switched off in Settings → Devices):
+- **Barrier** (`devices/barrier.py`): USB/serial relay, network relay (TCP), web relay (HTTP), simulator. Opens automatically after the entry receipt / for covered subscribers and after payment or a free exit; manual opening with a reason; every opening logged (migration `0009_hardware`).
+- **RFID / UHF cards** (`devices/rfid.py`): USB readers via the scanner filter, serial, UHF over TCP (auto‑reconnect), simulator. Cards are managed in the subscriber profile (add by reading or typing, report lost). A card at the gate does entry or exit for that person.
+- **Card terminal (PC‑POS)** (`devices/payment.py`): interface + simulator + manual mode; approved payments store the trace number; decline/timeout keep the vehicle in the exit panel. PSP drivers wait for the bank's SDK.
+- **LED sign** (`devices/led.py`): serial / TCP text drivers + simulator; rotation of free spaces per level and LED‑package ads.
+- **Ad display**: shop text slides for Gold (screen) ads between the image rounds.
+- Settings → Devices: kinds, ports/addresses, relay commands, terminal timeout, and test buttons for barrier, LED and terminal.
+
+How to run/test: `scripts/check.ps1`. Without hardware: set barrier, card reader, terminal and LED to *Simulator*.
+
+Known gaps: Iranian PSP terminal protocols (Behpardakht, Sepehr, Pardakht Novin) and vendor‑specific LED protocols need their documentation — the interfaces are ready (`PaymentTerminal`, `LedSign`).
