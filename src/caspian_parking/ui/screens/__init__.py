@@ -7,6 +7,7 @@ from caspian_parking.ui.shell.registry import ScreenSpec, register
 
 
 def register_builtin_screens() -> None:
+    from caspian_parking.ui.screens.ads import AdsScreen
     from caspian_parking.ui.screens.audit import AuditScreen
     from caspian_parking.ui.screens.blocklist import BlocklistScreen
     from caspian_parking.ui.screens.dashboard import DashboardScreen
@@ -65,6 +66,14 @@ def register_builtin_screens() -> None:
             BlocklistScreen,
             Permission.MANAGE_BLOCKLIST,
             keywords=("block", "مسدود"),
+        ),
+        ScreenSpec(
+            "ads",
+            "nav.ads",
+            "megaphone",
+            AdsScreen,
+            Permission.MANAGE_ADS,
+            keywords=("ads", "تبلیغ", "کوپن", "قرعه‌کشی", "قالب رسید"),
         ),
         ScreenSpec(
             "reports",

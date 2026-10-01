@@ -16,6 +16,7 @@ from caspian_parking.services.reports.base import ReportParams, ReportResult
 from caspian_parking.services.reports.common import not_cancelled, payments_query, plate_cell, user_names, visits_query
 
 METHODS = ("cash", "card", "mall_card")
+FIN_ROWS = ("parking", "debt", "subscription", "wallet", "coupon", "ad")
 
 
 def _method_row(label: str, amounts: dict[str, int]) -> list[object]:
@@ -52,7 +53,7 @@ def financial(session: Session, params: ReportParams) -> ReportResult:
     for method, total in session.execute(wallet_stmt.group_by(WalletTransaction.method)):
         rows["wallet"][str(method)] = int(total or 0)
 
-    income = [_method_row(tr(f"fin.{key}"), rows.get(key, {})) for key in ("parking", "debt", "subscription", "wallet")]
+    income = [_method_row(tr(f"fin.{key}"), rows.get(key, {})) for key in FIN_ROWS]
     totals = {m: sum(int(r[i + 1]) for r in income) for i, m in enumerate(METHODS)}  # type: ignore[call-overload]
     grand = sum(totals.values())
     income.append([tr("fin.total"), *[totals[m] for m in METHODS], grand])

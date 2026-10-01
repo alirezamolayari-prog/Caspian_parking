@@ -1,6 +1,6 @@
 """Report registry (SPEC §4.12) and a runner that checks permissions.
 
-Reports of later phases (camera accuracy 17, after-hours 18, outages 19, ads & coupons 20) register
+Reports of later phases (camera accuracy 17, after-hours 18) register
 themselves here when their phase lands.
 """
 
@@ -13,7 +13,7 @@ from caspian_parking.core.permissions import Permission
 from caspian_parking.i18n import tr
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.exporters import export_excel, export_word
-from caspian_parking.services.reports import money, occupancy, traffic
+from caspian_parking.services.reports import ads, money, occupancy, traffic
 from caspian_parking.services.reports.base import ReportDef, ReportParams, ReportResult
 
 FINANCIAL = Permission.VIEW_FINANCIAL_REPORTS
@@ -37,6 +37,10 @@ REPORTS: list[ReportDef] = [
     ReportDef("block_attempts", 15, GENERAL, traffic.block_attempts),
     ReportDef("no_plate", 16, GENERAL, traffic.no_plate),
     ReportDef("outages", 19, GENERAL, traffic.outages),
+    ReportDef("ads", 20, FINANCIAL, ads.ads),
+    ReportDef("coupons", 20, FINANCIAL, ads.coupons),
+    ReportDef("wallets", 20, FINANCIAL, ads.wallets),
+    ReportDef("shop_performance", 20, GENERAL, ads.shop_performance, needs_text=True),
     ReportDef("open_sessions", 21, GENERAL, traffic.open_sessions),
 ]
 

@@ -102,3 +102,18 @@ Built:
 How to run/test: `scripts/check.ps1`. In the app: sidebar → «پشتیبان و سیستم».
 
 Known gaps: restore of the central SQL Server database is done with SQL Server tools (the app creates and verifies `.bak` files); cameras (Phase 8) will be the first real writer of photos.
+
+## Phase 7 — Advertising module ✅
+Built:
+- Ad contracts (migration `0006_ads`): shop, package (Bronze / Silver / Gold from the `ads.packages` setting), dates, weekdays, entry and/or exit receipts, multi‑line text, offer pill, location, large text, shop logo (packages with `logo` only), price, optional payment. Status lights like subscriptions; expired contracts drop out automatically; ending a contract needs a reason (audited).
+- Rotation on receipts: the running ad with the fewest prints today is printed on the entry (and duplicate) receipt and, if enabled, on the exit receipt. Each print writes an `ad_prints` event (proof for the shop). With no running ad the ad section and its divider disappear.
+- Receipt templates: `templates\` folder watched live (sub‑folders = categories, name = file name), search + category filter, 1‑bit preview, "use for entry receipt", "back to mother receipt", test print, edit in Paint, open folder. A deleted template falls back to the mother receipt with a warning in the alert bar.
+- Coupons: shops buy N single‑use codes (12 digits, `9…` + Luhn) paid directly or from the wallet (balance checked); expiry in days from settings; printed on the thermal printer (shop name or the shop's template + barcode). At exit, scanning the coupon after the ticket (or typing it) makes the parking fee 0; night fines stay. A code can be used once only (unique redemption event), expired / unknown codes are refused.
+- Ad calendar (sold / free slots per day, weekends & holidays, occasions such as Nowruz and Yalda from settings), monthly raffle (secure random among the month's transient receipts, candidate count + digest stored, once per month, sponsor shop), advertiser subscription discount (default 10 %).
+- Reports (number 20): ads & prints, coupons per shop (bought / used / expired / revenue), shop wallet statements, printable one‑shop performance report; the financial report now has rows for coupon sales and ad contracts.
+- Ad display screen: slideshow of `ads\slideshow` (seconds per slide in settings), full screen on a second monitor when present; device interface + simulator.
+- UI: sidebar → «تبلیغات و کوپن» with tabs Ads, Coupons, Ad calendar, Raffle, Receipt templates, Ad display; coupon field on the gate's exit panel.
+
+How to run/test: `scripts/check.ps1` (≈ 595 tests). Receipt images for review: `tests/artifacts/receipt_coupon*.png`.
+
+Known gaps: LED sign text rotation arrives with the LED driver (Phase 10).

@@ -293,3 +293,42 @@ def test_templates_listing_selection_and_fallback(ctx):
     assert selection.path is None
     templates.select_template(ctx, None)
     assert not templates.selected_template(ctx).missing
+
+
+# ---------------------------------------------------------------- report 20
+
+
+def test_ads_coupons_wallet_and_shop_reports(ctx, shop, clock):
+    from caspian_parking.services.reports import export_report, run_report
+    from caspian_parking.services.reports.base import range_params
+
+    ads = AdService(ctx)
+    ad = ads.create_ad(shop.id, "silver", MON, MON + timedelta(days=5), method="card")
+    ads.record_print(ad, "entry")
+    ads.record_print(ad, "exit")
+    PeopleService(ctx).deposit(shop.id, 1_000_000, "cash")
+    _batch, codes = CouponService(ctx).sell_batch(shop.id, 2, "wallet")
+    gate = GateService(ctx)
+    entry = gate.register_entry(parse_plate("12ب345-22"))
+    clock.advance(minutes=90)
+    gate.complete_exit(gate.quote(entry.session.id, coupon_code=codes[0].code), None)
+    ads.draw_raffle(1405, 7, sponsor_shop_id=shop.id)
+    params = range_params(MON, MON)
+
+    result = run_report(ctx, "ads", params)
+    assert result.totals == {"ads": 1, "prints": 2, "price": 12_000_000}
+    coupons = run_report(ctx, "coupons", params)
+    assert (coupons.totals["bought"], coupons.totals["used"], coupons.totals["revenue"]) == (2, 1, 300_000)
+    wallets = run_report(ctx, "wallets", params)
+    assert wallets.sections[0].rows == [["مبلمان آرتا", 0, 1_000_000, 300_000, 700_000]]
+    financial = run_report(ctx, "financial", params)
+    income = {row[0]: row[-1] for row in financial.sections[0].rows}
+    from caspian_parking.i18n import tr
+
+    assert income[tr("fin.ad")] == 12_000_000
+    assert income[tr("fin.coupon")] == 0  # paid from the wallet (counted when the wallet was charged)
+    performance = run_report(ctx, "shop_performance", range_params(MON, MON, text="آرتا"))
+    assert performance.totals == {"prints": 2, "coupons_used": 1}
+    assert len(performance.sections) == 3  # ads, coupons, raffle
+    assert run_report(ctx, "shop_performance", range_params(MON, MON, text="")).row_count() == 0
+    assert export_report(performance, ctx.data_root.exports, "excel").is_file()

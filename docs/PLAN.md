@@ -116,11 +116,11 @@ docs/   SPEC PLAN PROGRESS DECISIONS THIRD_PARTY_LICENSES SITE_SETUP USER_MANUAL
 - **Tests:** backup→restore round trip (SQLite + LocalDB), retention, fiscal close carry‑over and read‑only, photo naming & retention, outage detection from heartbeat gaps, training isolation.
 - **Deps:** 3–5.
 
-## 🔄 Phase 7 — Advertising module
-- [ ] Ads (shop, dates, weekdays, package, price, text size, logo for premium), rotation + print counts, receipt ad section on/off, exit‑receipt ads.
-- [ ] Template folder watcher (QFileSystemWatcher; name = file name; categories = subfolders), searchable picker + 1‑bit preview, test print, edit in Paint, fallback + warning.
-- [ ] Coupons: purchase (direct or wallet), unique single‑use codes + expiry, print, redeem at exit (fee 0, fines stay), reports per shop.
-- [ ] Ad contracts with lights + auto‑removal, ad calendar (weekends, Nowruz, Yalda…), packages Bronze/Silver/Gold in settings, advertiser subscription discount, monthly raffle (`secrets.SystemRandom`, logged), shop performance report, report 20, ad slideshow screen (AdScreen simulator + second monitor).
+## ✅ Phase 7 — Advertising module
+- [x] Ads (shop, dates, weekdays, package, price, text size, logo for premium), rotation + print counts, receipt ad section on/off, exit‑receipt ads.
+- [x] Template folder watcher (QFileSystemWatcher; name = file name; categories = subfolders), searchable picker + 1‑bit preview, test print, edit in Paint, fallback + warning.
+- [x] Coupons: purchase (direct or wallet), unique single‑use codes + expiry, print, redeem at exit (fee 0, fines stay), reports per shop.
+- [x] Ad contracts with lights + auto‑removal, ad calendar (weekends, Nowruz, Yalda…), packages Bronze/Silver/Gold in settings, advertiser subscription discount, monthly raffle (`secrets.SystemRandom`, logged), shop performance report, report 20, ad slideshow screen (AdScreen simulator + second monitor).
 - **Tests:** rotation fairness, print counters, no‑ad layout, coupon single‑use/expiry/night fine, watcher add/remove/fallback, raffle logged & reproducible audit.
 - **Deps:** 3, 4, 5.
 

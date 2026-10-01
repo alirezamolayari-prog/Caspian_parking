@@ -8,7 +8,7 @@ Night fines still apply (the tariff engine's coupon flag only zeroes the parking
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 
 from sqlalchemy import func, select
@@ -53,6 +53,7 @@ class ShopCouponStats:
 
     @property
     def open(self) -> int:
+        """Sold, not used and not expired (meaningful without a date range)."""
         return self.bought - self.used - self.expired
 
 
@@ -178,37 +179,47 @@ class CouponService:
             return shop_coupon_stats(session, self._today())
 
 
-def shop_coupon_stats(session: Session, today: date, shop_id: str | None = None) -> list[ShopCouponStats]:
-    """Per shop: coupons bought / used / expired unused, and revenue (SPEC §4.11 coupon report)."""
+def shop_coupon_stats(
+    session: Session,
+    today: date,
+    shop_id: str | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[ShopCouponStats]:
+    """Per shop: coupons bought / used / expired unused, and revenue (SPEC §4.11 coupon report).
+
+    With a range: batches sold and coupons used inside it, coupons whose expiry day falls inside it.
+    """
     names = {s.id: s.name for s in session.scalars(select(Shop))}
+    batches = select(CouponBatch.shop_id, func.sum(CouponBatch.quantity), func.sum(CouponBatch.total))
+    used_stmt = select(Coupon.shop_id, func.count()).join(CouponRedemption, CouponRedemption.coupon_id == Coupon.id)
+    redeemed = select(CouponRedemption.coupon_id)
+    expired_stmt = select(Coupon.shop_id, func.count()).where(Coupon.expires_on < today, Coupon.id.not_in(redeemed))
+    if shop_id:
+        batches = batches.where(CouponBatch.shop_id == shop_id)
+        used_stmt = used_stmt.where(Coupon.shop_id == shop_id)
+        expired_stmt = expired_stmt.where(Coupon.shop_id == shop_id)
+    if start is not None and end is not None:
+        batches = batches.where(CouponBatch.created_at_utc >= start, CouponBatch.created_at_utc < end)
+        used_stmt = used_stmt.where(CouponRedemption.created_at_utc >= start, CouponRedemption.created_at_utc < end)
+        first, last = local_date(start), local_date(end - timedelta(seconds=1))
+        expired_stmt = expired_stmt.where(Coupon.expires_on >= first, Coupon.expires_on <= last)
     bought: dict[str, int] = {}
     revenue: dict[str, int] = {}
-    stmt = select(CouponBatch.shop_id, func.sum(CouponBatch.quantity), func.sum(CouponBatch.total)).group_by(
-        CouponBatch.shop_id
-    )
-    if shop_id:
-        stmt = stmt.where(CouponBatch.shop_id == shop_id)
-    for shop, quantity, total in session.execute(stmt):
+    for shop, quantity, total in session.execute(batches.group_by(CouponBatch.shop_id)):
         bought[shop] = int(quantity or 0)
         revenue[shop] = int(total or 0)
-    used = dict(
-        session.execute(
-            select(Coupon.shop_id, func.count())
-            .join(CouponRedemption, CouponRedemption.coupon_id == Coupon.id)
-            .group_by(Coupon.shop_id)
-        ).all()
-    )
-    redeemed = select(CouponRedemption.coupon_id)
-    expired = dict(
-        session.execute(
-            select(Coupon.shop_id, func.count())
-            .where(Coupon.expires_on < today, Coupon.id.not_in(redeemed))
-            .group_by(Coupon.shop_id)
-        ).all()
-    )
+    used = {str(k): int(v) for k, v in session.execute(used_stmt.group_by(Coupon.shop_id))}
+    expired = {str(k): int(v) for k, v in session.execute(expired_stmt.group_by(Coupon.shop_id))}
+    shops = set(bought) | set(used) | set(expired)
     return [
         ShopCouponStats(
-            shop, names.get(shop, "—"), bought[shop], int(used.get(shop, 0)), int(expired.get(shop, 0)), revenue[shop]
+            shop,
+            names.get(shop, "—"),
+            bought.get(shop, 0),
+            used.get(shop, 0),
+            expired.get(shop, 0),
+            revenue.get(shop, 0),
         )
-        for shop in sorted(bought, key=lambda s: names.get(s, ""))
+        for shop in sorted(shops, key=lambda s: names.get(s, ""))
     ]

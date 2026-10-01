@@ -102,6 +102,8 @@ QFrame#Toast[kind="error"] { border-color: $danger_text; }
 QFrame#Toast[kind="warning"] { border-color: $warning_text; }
 QWidget#Alarm { background: $alarm_bg; }
 QWidget#Alarm QLabel { color: $alarm_text; }
+QWidget#Slideshow { background: $bg; }
+QWidget#Slideshow QLabel { color: $text_muted; font-size: ${title}px; }
 
 /* ---- inputs ---- */
 QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QComboBox, QDateEdit, QTimeEdit {

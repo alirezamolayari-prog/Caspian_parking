@@ -179,6 +179,10 @@ class ReportsScreen(Screen):
     def _report_changed(self) -> None:
         report = self.current_report()
         self.text.setVisible(bool(report and report.needs_text))
+        if report is not None and report.needs_text:
+            self.text.setPlaceholderText(
+                tr("reports.shop_name" if report.key == "shop_performance" else "reports.plate")
+            )
 
     def params(self) -> ReportParams:
         first, last = self.start_date.gregorian(), self.end_date.gregorian()

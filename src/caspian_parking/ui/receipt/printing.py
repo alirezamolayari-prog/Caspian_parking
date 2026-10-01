@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from caspian_parking.core.receipt import ReceiptContent, ReceiptLayout
+from caspian_parking.core.receipt import CouponReceipt, ReceiptContent, ReceiptLayout
 from caspian_parking.devices.printer import Printer, PrinterError, SimulatorPrinter, create_printer
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.receipts import load_layout
 from caspian_parking.ui.receipt.assets import ensure_default_assets
-from caspian_parking.ui.receipt.renderer import RenderResult, render_receipt
+from caspian_parking.ui.receipt.renderer import RenderResult, render_coupon, render_receipt
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +48,11 @@ class ReceiptPrinting:
 
     def render(self, content: ReceiptContent, template_path: Path | None = None) -> RenderResult:
         result = render_receipt(content, self.layout(template_path))
+        self.last = result
+        return result
+
+    def render_coupon(self, coupon: CouponReceipt) -> RenderResult:
+        result = render_coupon(coupon, self.layout())
         self.last = result
         return result
 

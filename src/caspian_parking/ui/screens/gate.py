@@ -28,15 +28,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from caspian_parking.core.coupons import is_coupon_code
 from caspian_parking.core.permissions import Permission
 from caspian_parking.core.plate import Plate, PlateKind
+from caspian_parking.core.receipt import ReceiptAd
 from caspian_parking.core.subscriptions import EntryStatus
 from caspian_parking.core.tariff import PassThroughType, VehicleType, VisitKind
-from caspian_parking.data.models import ActiveSession, EntryEvent
+from caspian_parking.data.models import ActiveSession, Ad, EntryEvent
 from caspian_parking.devices.printer import PrinterError
 from caspian_parking.devices.scanner import ScannerSource, SerialScanner, WedgeScanner
 from caspian_parking.i18n import tr
 from caspian_parking.i18n.format import fa_digits, fa_duration, fa_ltr, fa_money, fa_number, fa_time
+from caspian_parking.services import templates
+from caspian_parking.services.ads import AdService
 from caspian_parking.services.blocklist import BlockMatch
 from caspian_parking.services.context import AppContext
 from caspian_parking.services.gate_service import (
@@ -101,6 +105,8 @@ class GateScreen(Screen):
     def __init__(self, ctx: AppContext, printing: ReceiptPrinting | None = None) -> None:
         super().__init__(ctx, tr("gate.title"))
         self.gate = GateService(ctx)
+        self.ads = AdService(ctx)
+        self.coupon_code: str | None = None
         self.printing = printing or ReceiptPrinting(ctx)
         self.quote: ExitQuote | None = None
         self.lost_ticket = False
@@ -336,8 +342,10 @@ class GateScreen(Screen):
             show_toast(self, tr(str(exc)), "warning")
             return None
         if result.needs_receipt or self._print_for_covered():
-            content = entry_content(result.session, result.payload, training=self.ctx.training)
-            self._print(content, "entry", preview=self._preview_enabled())
+            ad = self._rotating_ad("entry")
+            content = entry_content(result.session, result.payload, ad=self._receipt_ad(ad), training=self.ctx.training)
+            if self._print(content, "entry", preview=self._preview_enabled()):
+                self._count_ad(ad, "entry", result.session.id)
             show_toast(self, tr("gate.entry_done", ticket=fa_ltr(str(result.ticket))))
         else:
             show_toast(self, tr("gate.entry_covered"))
@@ -367,7 +375,15 @@ class GateScreen(Screen):
         from caspian_parking.core.receipt import ReceiptContent
 
         assert isinstance(content, ReceiptContent)
-        result = self.printing.render(content)
+        template = None
+        if content.kind in ("entry", "duplicate"):
+            selection = templates.selected_template(self.ctx)
+            template = selection.path
+            if selection.missing:
+                self._alert("template", tr("receipt.template_missing"), "warning")
+            else:
+                self._clear_alert("template")
+        result = self.printing.render(content, template)
         for warning in result.warnings:
             self._alert("receipt", tr(warning), "warning")
         if preview:
@@ -382,6 +398,18 @@ class GateScreen(Screen):
             return False
         self._clear_alert("printer")
         return True
+
+    def _rotating_ad(self, placement: str) -> Ad | None:
+        with self.ctx.read() as session:
+            enabled = bool(get_setting(session, "receipt.show_ad"))
+        return self.ads.next_ad(placement) if enabled else None
+
+    def _receipt_ad(self, ad: Ad | None) -> ReceiptAd | None:
+        return self.ads.receipt_ad(ad) if ad is not None else None
+
+    def _count_ad(self, ad: Ad | None, kind: str, session_id: str) -> None:
+        if ad is not None and not self.ctx.training:
+            self.ads.record_print(ad, kind, session_id)
 
     def _already_inside(self, session: ActiveSession) -> None:
         dialog = AlreadyInsideDialog(self, session)
@@ -400,7 +428,11 @@ class GateScreen(Screen):
         from caspian_parking.core.barcode import encode_payload
 
         payload = encode_payload(active.gate_code, active.ticket_sequence, active.entry_at_utc, self.gate.hmac_key())
-        printed = self._print(entry_content(active, payload, duplicate=True, training=self.ctx.training), "duplicate")
+        ad = self._rotating_ad("entry")
+        content = entry_content(active, payload, duplicate=True, ad=self._receipt_ad(ad), training=self.ctx.training)
+        printed = self._print(content, "duplicate")
+        if printed:
+            self._count_ad(ad, "entry", active.id)
         if printed:
             show_toast(self, tr("gate.duplicate_done"))
         self.refresh_lists()
@@ -436,6 +468,12 @@ class GateScreen(Screen):
         details.addLayout(self.exit_lines)
         self.exit_total = label("", "kpi")
         details.addWidget(self.exit_total)
+        coupon_row = QHBoxLayout()
+        self.coupon_field = TextField(tr("coupons.code_placeholder"))
+        self.coupon_field.returnPressed.connect(self.apply_coupon)
+        coupon_row.addWidget(self.coupon_field, 1)
+        coupon_row.addWidget(Button(tr("coupons.apply"), "ticket-percent", on_click=self.apply_coupon))
+        details.addLayout(coupon_row)
         self.adjust_box = QWidget()
         adjust = QGridLayout(self.adjust_box)
         adjust.setContentsMargins(0, 0, 0, 0)
@@ -481,6 +519,8 @@ class GateScreen(Screen):
 
     def reset_exit(self) -> None:
         self.quote = None
+        self.coupon_code = None
+        self.coupon_field.clear()
         self.lost_ticket = False
         self.exit_details.setVisible(False)
         self.exit_empty.setVisible(True)
@@ -498,6 +538,9 @@ class GateScreen(Screen):
     def on_scanned(self, text: str) -> None:
         if not self.isVisible():
             return
+        if is_coupon_code(text):
+            self.apply_coupon(text)
+            return
         self.ticket_field.setText(text)
         self.calculate()
 
@@ -514,12 +557,29 @@ class GateScreen(Screen):
             return None
         return self.load_exit(session)
 
-    def load_exit(self, session: ActiveSession, lost: bool = False) -> ExitQuote | None:
+    def apply_coupon(self, text: str | None = None) -> ExitQuote | None:
+        """Scan (or type) a shop coupon after the ticket: parking fee becomes 0, night fines stay."""
+        code = text if text is not None else self.coupon_field.value()
+        if self.quote is None:
+            show_toast(self, tr("coupons.scan_ticket_first"), "info")
+            return None
+        if not code:
+            self.coupon_field.setFocus()
+            return None
+        quote = self.load_exit(self.quote.session, self.lost_ticket, coupon_code=code)
+        if quote is not None:
+            show_toast(self, tr("coupons.applied"))
+        return quote
+
+    def load_exit(self, session: ActiveSession, lost: bool = False, coupon_code: str | None = None) -> ExitQuote | None:
         try:
-            self.quote = self.gate.quote(session.id, lost_ticket=lost)
+            quote = self.gate.quote(session.id, lost_ticket=lost, coupon_code=coupon_code)
         except GateError as exc:
             show_toast(self, tr(str(exc)), "warning")
             return None
+        self.quote = quote
+        self.coupon_code = coupon_code
+        self.coupon_field.setText(coupon_code or "")
         self.lost_ticket = lost
         quote = self.quote
         self.exit_empty.setVisible(False)
@@ -593,9 +653,11 @@ class GateScreen(Screen):
                 quote.breakdown.total_minutes,
                 visit.amount_paid,
                 method.value if visit.amount_paid else None,
+                ad=self._receipt_ad(ad := self._rotating_ad("exit")),
                 training=self.ctx.training,
             )
-            self._print(content, "exit")
+            if self._print(content, "exit"):
+                self._count_ad(ad, "exit", quote.session.id)
         show_toast(self, tr("gate.exit_done", amount=fa_money(visit.amount_paid)))
         self.reset_exit()
         self.refresh_lists()

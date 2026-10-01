@@ -9,6 +9,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -20,10 +21,11 @@ from caspian_parking.core.jalali import (
     local_date,
     start_of_local_day_utc,
 )
+from caspian_parking.core.money import require_int
 from caspian_parking.core.permissions import Permission
 from caspian_parking.core.receipt import ReceiptAd
 from caspian_parking.core.subscriptions import Light, light_for
-from caspian_parking.data.models import Ad, AdPrint, Cancellation, EntryEvent, RaffleDraw, Shop
+from caspian_parking.data.models import Ad, AdPrint, Cancellation, EntryEvent, Payment, RaffleDraw, Shop
 from caspian_parking.data.repositories.base import ReferenceRepository
 from caspian_parking.data.repositories.system import SettingsRepository
 from caspian_parking.data.repositories.tariff import KEY_FREE_WEEKDAYS, HolidayRepository
@@ -89,12 +91,18 @@ class AdService:
         on_entry: bool = True,
         on_exit: bool = False,
         logo_source: Path | None = None,
+        method: str | None = None,
     ) -> Ad:
+        """New ad contract. With ``method`` (cash / card / mall_card) the contract price is recorded as paid."""
         self._require()
         if package not in PACKAGES:
             raise AdError("ads.bad_package")
         if end < start:
             raise AdError("people.bad_range")
+        if price is not None:
+            require_int(price)
+            if price < 0:
+                raise AdError("gate.bad_amount")
         with self.ctx.uow() as session:
             if session.get(Shop, shop_id) is None:
                 raise AdError("people.not_found")
@@ -106,7 +114,7 @@ class AdService:
                 if "logo" not in features:
                     raise AdError("ads.logo_not_in_package")
                 logo_file = self._copy_logo(logo_source)
-            return AdRepository(session).add(
+            ad = AdRepository(session).add(
                 Ad(
                     shop_id=shop_id,
                     package=package,
@@ -123,6 +131,13 @@ class AdService:
                     logo_file=logo_file,
                 )
             )
+            if method is not None and price > 0:
+                session.add(
+                    Payment(
+                        purpose="ad", method=method, amount=price, gate_code=self.ctx.config.gate_code, reference=ad.id
+                    )
+                )
+            return ad
 
     def _copy_logo(self, source: Path) -> str:
         folder = self.ctx.data_root.ads / "logos"
@@ -131,7 +146,7 @@ class AdService:
         target.write_bytes(source.read_bytes())
         return f"logos/{source.name}"
 
-    def update_ad(self, ad_id: str, **changes: object) -> Ad:
+    def update_ad(self, ad_id: str, **changes: Any) -> Ad:
         self._require()
         with self.ctx.uow() as session:
             ad = session.get(Ad, ad_id)

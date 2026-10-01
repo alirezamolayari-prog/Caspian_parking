@@ -91,3 +91,16 @@ Newest entries at the bottom of each section. Format: **D‑NNN — title** → 
 - **D‑063 — Fiscal year default:** Farvardin 1 – Esfand end of the Jalali year; the next year after a close starts the day after the closed year's end.
 - **D‑064 — Photos table:** photo rows are reference data without audit (thousands per day); deleting an old file sets `file_deleted_at_utc` instead of deleting the row.
 - **D‑065 — Outages:** a gap of more than 90 s between heartbeats counts as an outage; the heartbeat file also records whether the app shut down cleanly.
+
+## Phase 7 (2026‑09‑30)
+
+- **D‑066 — Ad rotation:** among the ads running today for the placement (entry / exit), the one with the fewest prints today is printed (ties: oldest contract). Every printed ad writes an `ad_prints` event (proof for the shop); training mode does not count prints.
+- **D‑067 — Packages** (Bronze / Silver / Gold) live in the `ads.packages` setting (price + features `text`, `coupons`, `logo`, `screen`, `led`). The shop logo is printed only when the package has `logo`. Coupon sales are open to every shop (the package list is shown to the owner but not enforced), because shops may buy coupons without an ad contract.
+- **D‑068 — Ad payments:** an ad contract can be recorded as paid (cash / card / mall card) when it is created; this writes a `Payment` with purpose `ad`, and coupon sales write purpose `coupon` (or a wallet debit). Both appear as their own rows in the financial report.
+- **D‑069 — Coupon codes:** 12 digits = `9` + 10 random digits (`secrets`) + Luhn check digit; the prefix keeps them apart from 20‑digit ticket payloads on the same scanner. A redemption is an append‑only event with a unique `coupon_id`, so a code can be used only once even with two open quotes. Coupons are refused when expired; night fines still apply (tariff engine coupon flag).
+- **D‑070 — Wallet coupon purchase needs enough balance** (unlike subscription renewals, which the owner may want to allow into the negative), so a shop cannot buy coupons on credit by mistake.
+- **D‑071 — Advertiser discount** (`ads.advertiser_discount_percent`, default 10 %) applies to the list subscription price of people linked to a shop that has a running ad; a manual price override is never discounted. Integer Rial: `price − price × % // 100`.
+- **D‑072 — Raffle:** candidates are the month's transient entry receipts that were not cancelled, ordered by entry time; the winner is chosen with `secrets.SystemRandom`, and the number of candidates plus a SHA‑256 digest of the candidate list are stored so the draw can be audited. One draw per Jalali month.
+- **D‑073 — Receipt template selection** is a shared setting (`receipt.template`, path relative to `templates\`); if the file disappears, the mother receipt is printed and the gate shows a warning in the alert bar. Coupons may use their own template per batch.
+- **D‑074 — Ad calendar:** `ads.slots_per_day` (default 3) receipt‑ad slots per day; weekends = free weekdays + holidays from the tariff calendar; occasions (Nowruz, Yalda, Esfand shopping…) come from the `ads.occasions` setting.
+- **D‑075 — Report 20** is split into four reports that share number 20 (ads & prints, coupons per shop, wallet statements, one‑shop performance report), because each needs different columns.

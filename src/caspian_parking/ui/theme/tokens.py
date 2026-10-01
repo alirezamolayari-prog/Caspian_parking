@@ -233,6 +233,9 @@ class Size:
     ICON_LG = 28
     ROW = 40
     CHIP = 26
+    SLIDESHOW_W = 960  # windowed ad slideshow when there is no second monitor
+    SLIDESHOW_H = 540
+    TEMPLATE_PREVIEW = 300  # receipt template / coupon preview width
 
 
 class Motion:
